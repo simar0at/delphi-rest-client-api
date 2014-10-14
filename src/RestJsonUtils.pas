@@ -4,10 +4,19 @@ interface
 
 {$I DelphiRest.inc}
 
-uses {$IFDEF USE_GENERICS}RestJsonGenerics, {$ENDIF}RestJsonOldRTTI, SysUtils,
-     DateUtils, TypInfo;
+uses {$IFDEF USE_GENERICS}RestJsonGenerics, {$ENDIF}
+     {$IFDEF USE_SUPER_OBJECT}RestJsonOldRTTI, {$ENDIF}
+     SysUtils, TypInfo;
 
 type
+  EJsonInvalidValue = class(Exception);
+  EJsonInvalidValueForField = class(Exception);
+  EJsonInvalidSyntax = class(Exception);
+  ENoSerializableClass = class(Exception)
+  public
+    constructor Create(AClass: TClass);
+  end;
+
   TJsonUtil = class
   public
     class function Marshal(entity: TObject): string;
@@ -19,6 +28,13 @@ type
   end;
 
 implementation
+
+{ ENoSerializableClass }
+
+constructor ENoSerializableClass.Create(AClass: TClass);
+begin
+  inherited CreateFmt('Class "%s" has no RTTI (Run-time Type Information).', [AClass.ClassName]);
+end;
 
 { TJsonUtil }
 

@@ -80,24 +80,24 @@
   {$MODE OBJFPC}{$H+}
 {$ENDIF}
 
+{$I DelphiRest.inc}
+
 {$DEFINE SUPER_METHOD}
+{$DEFINE WINDOWSNT_COMPATIBILITY}
 {.$DEFINE DEBUG} // track memory leack
 
 
-{$if defined(FPC) or defined(VER170) or defined(VER180) or defined(VER190)
-  or defined(VER200) or defined(VER210) or defined(VER220) or defined(VER230)
-  or defined(VER240)  or defined(VER250) or defined(VER260)}
+{$if defined(FPC) or defined(VER170) or defined(VER180) or defined(VER190) or defined(VER200) or defined(VER210)}
   {$DEFINE HAVE_INLINE}
 {$ifend}
 
-{$if defined(VER210) or defined(VER220) or defined(VER230) or defined(VER240)
-  or defined(VER250) or defined(VER260)}
+{$IFDEF DELPHI_2010_UP}
   {$define HAVE_RTTI}
-{$ifend}
+{$ENDIF}
 
-{$if defined(VER230) or defined(VER240) or defined(VER250) or defined(VER260)}
+{$IFDEF DELPHI_XE2_UP}
   {$define NEED_FORMATSETTINGS}
-{$ifend}
+{$ENDIF}
 
 {$if defined(FPC) and defined(VER2_6)}
   {$define NEED_FORMATSETTINGS}
@@ -110,11 +110,39 @@ unit superobject;
 
 interface
 uses
-  Classes, supertypes
+  Classes
 {$IFDEF HAVE_RTTI}
-  ,Generics.Collections, RTTI, TypInfo
+  , Generics.Collections, RTTI, TypInfo, DbxJsonUtils, DBXJsonHelpers
 {$ENDIF}
   ;
+
+type
+{$IFNDEF FPC}
+{$IFDEF CPUX64}
+  PtrInt = Int64;
+  PtrUInt = UInt64;
+{$ELSE}
+  PtrInt = longint;
+  PtrUInt = Longword;
+{$ENDIF}
+{$ENDIF}
+  SuperInt = Int64;
+
+{$if (sizeof(Char) = 1)}
+  SOChar = WideChar;
+  SOIChar = Word;
+  PSOChar = PWideChar;
+{$IFDEF FPC}
+  SOString = UnicodeString;
+{$ELSE}
+  SOString = WideString;
+{$ENDIF}
+{$else}
+  SOChar = Char;
+  SOIChar = Word;
+  PSOChar = PChar;
+  SOString = string;
+{$ifend}
 
 const
   SUPER_ARRAY_LIST_DEFAULT_SIZE = 32;
@@ -718,7 +746,7 @@ type
 {$ENDIF}
     property A[const path: SOString]: TSuperArray read GetA;
 
-    {$IFDEF SUPER_METHOD}
+{$IFDEF SUPER_METHOD}
     function call(const path: SOString; const param: ISuperObject = nil): ISuperObject; overload; virtual;
     function call(const path, param: SOString): ISuperObject; overload; virtual;
 {$ENDIF}
@@ -774,7 +802,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject; var Value: TValue): Boolean; virtual;
-    function ToJson(var value: TValue; const index: ISuperObject): ISuperObject; virtual;
+    function ToJson(var value: TValue; const index: ISuperObject; _listCount: integer=-1; field: TRttiField = nil): ISuperObject; virtual;
     function AsType<T>(const obj: ISuperObject): T;
     function AsJson<T>(const obj: T; const index: ISuperObject = nil): ISuperObject;
   end;
@@ -808,6 +836,8 @@ function SO(const Args: array of const): ISuperObject; overload;
 
 function SA(const Args: array of const): ISuperObject; overload;
 
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+function DelphiToJavaDateTime(const dt: TDateTime): int64;
 function TryObjectToDate(const obj: ISuperObject; var dt: TDateTime): Boolean;
 function UUIDToString(const g: TGUID): SOString;
 function StringToUUID(const str: SOString; var g: TGUID): Boolean;
@@ -825,17 +855,25 @@ type
 function TrySOInvoke(var ctx: TSuperRttiContext; const obj: TValue; const method: string; const params: ISuperObject; var Return: ISuperObject): TSuperInvokeResult; overload;
 function SOInvoke(const obj: TValue; const method: string; const params: ISuperObject; ctx: TSuperRttiContext = nil): ISuperObject; overload;
 function SOInvoke(const obj: TValue; const method: string; const params: string; ctx: TSuperRttiContext = nil): ISuperObject; overload;
+
+function IsGenericType(TypeInfo: PTypeInfo): Boolean;
+function GetDeclaredGenericType(RttiContext: TRttiContext; TypeInfo: PTypeInfo): TRttiType;
+function IsList(RttiContext: TRttiContext; TypeInfo: PTypeInfo): Boolean;
+function CreateInstance(RttiContext: TRttiContext; TypeInfo: PTypeInfo): TValue ;
 {$ENDIF}
 
 implementation
-uses
-  sysutils, Windows, superdate
+uses sysutils, RestJsonDateTimeUtils,
+{$IFDEF UNIX}
+  baseunix, unix, DateUtils
+{$ELSE}
+  Windows
+{$ENDIF}
 {$IFDEF FPC}
   ,sockets
 {$ELSE}
   ,WinSock
-{$ENDIF}
-  ;
+{$ENDIF};
 
 {$IFDEF DEBUG}
 var
@@ -979,6 +1017,320 @@ begin
   end;
 end;
 
+{$IFDEF UNIX}
+function GetTimeBias: integer;
+var
+  TimeVal: TTimeVal;
+  TimeZone: TTimeZone;
+begin
+  fpGetTimeOfDay(@TimeVal, @TimeZone);
+  Result := TimeZone.tz_minuteswest;
+end;
+{$ELSE}
+function GetTimeBias: integer;
+var
+  tzi : TTimeZoneInformation;
+begin
+  case GetTimeZoneInformation(tzi) of
+    TIME_ZONE_ID_UNKNOWN : Result := tzi.Bias;
+    TIME_ZONE_ID_STANDARD: Result := tzi.Bias + tzi.StandardBias;
+    TIME_ZONE_ID_DAYLIGHT: Result := tzi.Bias + tzi.DaylightBias;
+  else
+    Result := 0;
+  end;
+end;
+{$ENDIF}
+
+{$IFDEF UNIX}
+type
+  ptm = ^tm;
+  tm = record
+    tm_sec: Integer;		(* Seconds: 0-59 (K&R says 0-61?) *)
+    tm_min: Integer;		(* Minutes: 0-59 *)
+    tm_hour: Integer;	(* Hours since midnight: 0-23 *)
+    tm_mday: Integer;	(* Day of the month: 1-31 *)
+    tm_mon: Integer;		(* Months *since* january: 0-11 *)
+    tm_year: Integer;	(* Years since 1900 *)
+    tm_wday: Integer;	(* Days since Sunday (0-6) *)
+    tm_yday: Integer;	(* Days since Jan. 1: 0-365 *)
+    tm_isdst: Integer;	(* +1 Daylight Savings Time, 0 No DST, -1 don't know *)
+  end;
+
+function mktime(p: ptm): LongInt; cdecl; external;
+function gmtime(const t: PLongint): ptm; cdecl; external;
+function localtime (const t: PLongint): ptm; cdecl; external;
+
+function DelphiToJavaDateTime(const dt: TDateTime): Int64;
+var
+  p: ptm;
+  l, ms: Integer;
+  v: Int64;
+begin
+  v := Round((dt - 25569) * 86400000);
+  ms := v mod 1000;
+  l := v div 1000;
+  p := localtime(@l);
+  Result := Int64(mktime(p)) * 1000 + ms;
+end;
+
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+var
+  p: ptm;
+  l, ms: Integer;
+begin
+  l := dt div 1000;
+  ms := dt mod 1000;
+  p := gmtime(@l);
+  Result := EncodeDateTime(p^.tm_year+1900, p^.tm_mon+1, p^.tm_mday, p^.tm_hour, p^.tm_min, p^.tm_sec, ms);
+end;
+{$ELSE}
+
+{$IFDEF WINDOWSNT_COMPATIBILITY}
+function DayLightCompareDate(const date: PSystemTime;
+  const compareDate: PSystemTime): Integer;
+var
+  limit_day, dayinsecs, weekofmonth: Integer;
+  First: Word;
+begin
+  if (date^.wMonth < compareDate^.wMonth) then
+  begin
+    Result := -1; (* We are in a month before the date limit. *)
+    Exit;
+  end;
+
+  if (date^.wMonth > compareDate^.wMonth) then
+  begin
+    Result := 1; (* We are in a month after the date limit. *)
+    Exit;
+  end;
+
+  (* if year is 0 then date is in day-of-week format, otherwise
+   * it's absolute date.
+   *)
+  if (compareDate^.wYear = 0) then
+  begin
+    (* compareDate.wDay is interpreted as number of the week in the month
+     * 5 means: the last week in the month *)
+    weekofmonth := compareDate^.wDay;
+    (* calculate the day of the first DayOfWeek in the month *)
+    First := (6 + compareDate^.wDayOfWeek - date^.wDayOfWeek + date^.wDay) mod 7 + 1;
+    limit_day := First + 7 * (weekofmonth - 1);
+    (* check needed for the 5th weekday of the month *)
+    if (limit_day > MonthDays[(date^.wMonth=2) and IsLeapYear(date^.wYear)][date^.wMonth]) then
+      dec(limit_day, 7);
+  end
+  else
+    limit_day := compareDate^.wDay;
+
+  (* convert to seconds *)
+  limit_day := ((limit_day * 24  + compareDate^.wHour) * 60 + compareDate^.wMinute ) * 60;
+  dayinsecs := ((date^.wDay * 24  + date^.wHour) * 60 + date^.wMinute ) * 60 + date^.wSecond;
+  (* and compare *)
+
+  if dayinsecs < limit_day then
+    Result :=  -1 else
+    if dayinsecs > limit_day then
+      Result :=  1 else
+      Result :=  0; (* date is equal to the date limit. *)
+end;
+
+function CompTimeZoneID(const pTZinfo: PTimeZoneInformation;
+  lpFileTime: PFileTime; islocal: Boolean): LongWord;
+var
+  ret: Integer;
+  beforeStandardDate, afterDaylightDate: Boolean;
+  llTime: Int64;
+  SysTime: TSystemTime;
+  ftTemp: TFileTime;
+begin
+  llTime := 0;
+
+  if (pTZinfo^.DaylightDate.wMonth <> 0) then
+  begin
+    (* if year is 0 then date is in day-of-week format, otherwise
+     * it's absolute date.
+     *)
+    if ((pTZinfo^.StandardDate.wMonth = 0) or
+        ((pTZinfo^.StandardDate.wYear = 0) and
+        ((pTZinfo^.StandardDate.wDay < 1) or
+        (pTZinfo^.StandardDate.wDay > 5) or
+        (pTZinfo^.DaylightDate.wDay < 1) or
+        (pTZinfo^.DaylightDate.wDay > 5)))) then
+    begin
+      SetLastError(ERROR_INVALID_PARAMETER);
+      Result := TIME_ZONE_ID_INVALID;
+      Exit;
+    end;
+
+    if (not islocal) then
+    begin
+      llTime := PInt64(lpFileTime)^;
+      dec(llTime, Int64(pTZinfo^.Bias + pTZinfo^.DaylightBias) * 600000000);
+      PInt64(@ftTemp)^ := llTime;
+      lpFileTime := @ftTemp;
+    end;
+
+    FileTimeToSystemTime(lpFileTime^, SysTime);
+
+    (* check for daylight savings *)
+    ret := DayLightCompareDate(@SysTime, @pTZinfo^.StandardDate);
+    if (ret = -2) then
+    begin
+      Result := TIME_ZONE_ID_INVALID;
+      Exit;
+    end;
+
+    beforeStandardDate := ret < 0;
+
+    if (not islocal) then
+    begin
+      dec(llTime, Int64(pTZinfo^.StandardBias - pTZinfo^.DaylightBias) * 600000000);
+      PInt64(@ftTemp)^ := llTime;
+      FileTimeToSystemTime(lpFileTime^, SysTime);
+    end;
+
+    ret := DayLightCompareDate(@SysTime, @pTZinfo^.DaylightDate);
+    if (ret = -2) then
+    begin
+      Result := TIME_ZONE_ID_INVALID;
+      Exit;
+    end;
+
+    afterDaylightDate := ret >= 0;
+
+    Result := TIME_ZONE_ID_STANDARD;
+    if( pTZinfo^.DaylightDate.wMonth < pTZinfo^.StandardDate.wMonth ) then
+    begin
+      (* Northern hemisphere *)
+      if( beforeStandardDate and afterDaylightDate) then
+        Result := TIME_ZONE_ID_DAYLIGHT;
+    end else    (* Down south *)
+      if( beforeStandardDate or afterDaylightDate) then
+        Result := TIME_ZONE_ID_DAYLIGHT;
+  end else
+    (* No transition date *)
+    Result := TIME_ZONE_ID_UNKNOWN;
+end;
+
+function GetTimezoneBias(const pTZinfo: PTimeZoneInformation;
+  lpFileTime: PFileTime; islocal: Boolean; pBias: PLongint): Boolean;
+var
+  bias: LongInt;
+  tzid: LongWord;
+begin
+  bias := pTZinfo^.Bias;
+  tzid := CompTimeZoneID(pTZinfo, lpFileTime, islocal);
+
+  if( tzid = TIME_ZONE_ID_INVALID) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  if (tzid = TIME_ZONE_ID_DAYLIGHT) then
+    inc(bias, pTZinfo^.DaylightBias)
+  else if (tzid = TIME_ZONE_ID_STANDARD) then
+    inc(bias, pTZinfo^.StandardBias);
+  pBias^ := bias;
+  Result := True;
+end;
+
+function SystemTimeToTzSpecificLocalTime(
+  lpTimeZoneInformation: PTimeZoneInformation;
+  lpUniversalTime, lpLocalTime: PSystemTime): BOOL;
+var
+  ft: TFileTime;
+  lBias: LongInt;
+  llTime: Int64;
+  tzinfo: TTimeZoneInformation;
+begin
+  if (lpTimeZoneInformation <> nil) then
+    tzinfo := lpTimeZoneInformation^ else
+    if (GetTimeZoneInformation(tzinfo) = TIME_ZONE_ID_INVALID) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+  if (not SystemTimeToFileTime(lpUniversalTime^, ft)) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  llTime := PInt64(@ft)^;
+  if (not GetTimezoneBias(@tzinfo, @ft, False, @lBias)) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  (* convert minutes to 100-nanoseconds-ticks *)
+  dec(llTime, Int64(lBias) * 600000000);
+  PInt64(@ft)^ := llTime;
+  Result := FileTimeToSystemTime(ft, lpLocalTime^);
+end;
+
+function TzSpecificLocalTimeToSystemTime(
+    const lpTimeZoneInformation: PTimeZoneInformation;
+    const lpLocalTime: PSystemTime; lpUniversalTime: PSystemTime): BOOL;
+var
+  ft: TFileTime;
+  lBias: LongInt;
+  t: Int64;
+  tzinfo: TTimeZoneInformation;
+begin
+  if (lpTimeZoneInformation <> nil) then
+    tzinfo := lpTimeZoneInformation^
+  else
+    if (GetTimeZoneInformation(tzinfo) = TIME_ZONE_ID_INVALID) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+  if (not SystemTimeToFileTime(lpLocalTime^, ft)) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  t := PInt64(@ft)^;
+  if (not GetTimezoneBias(@tzinfo, @ft, True, @lBias)) then
+  begin
+    Result := False;
+    Exit;
+  end;
+  (* convert minutes to 100-nanoseconds-ticks *)
+  inc(t, Int64(lBias) * 600000000);
+  PInt64(@ft)^ := t;
+  Result := FileTimeToSystemTime(ft, lpUniversalTime^);
+end;
+{$ELSE}
+function TzSpecificLocalTimeToSystemTime(
+  lpTimeZoneInformation: PTimeZoneInformation;
+  lpLocalTime, lpUniversalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll';
+
+function SystemTimeToTzSpecificLocalTime(
+  lpTimeZoneInformation: PTimeZoneInformation;
+  lpUniversalTime, lpLocalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll';
+{$ENDIF}
+
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+var
+  t: TSystemTime;
+begin
+  DateTimeToSystemTime(25569 + (dt / 86400000), t);
+  SystemTimeToTzSpecificLocalTime(nil, @t, @t);
+  Result := SystemTimeToDateTime(t);
+end;
+
+function DelphiToJavaDateTime(const dt: TDateTime): int64;
+var
+  t: TSystemTime;
+begin
+  DateTimeToSystemTime(dt, t);
+  TzSpecificLocalTimeToSystemTime(nil, @t, @t);
+  Result := Round((SystemTimeToDateTime(t) - 25569) * 86400000)
+end;
+{$ENDIF}
+
 function TryObjectToDate(const obj: ISuperObject; var dt: TDateTime): Boolean;
 var
   i: Int64;
@@ -997,6 +1349,10 @@ begin
         Result := True;
       end else
         Result := TryStrToDateTime(obj.AsString, dt);
+    end;
+  stNull:
+    begin
+      Result := True;
     end;
   else
     Result := False;
@@ -1428,11 +1784,6 @@ begin
   Result := TSuperObject.Create(TValueData(value).FAsSLong <> 0);
 end;
 
-function serialtodatetime(ctx: TSuperRttiContext; var value: TValue; const index: ISuperObject): ISuperObject;
-begin
-  Result := TSuperObject.Create(DelphiToJavaDateTime(TValueData(value).FAsDouble));
-end;
-
 function serialtoguid(ctx: TSuperRttiContext; var value: TValue; const index: ISuperObject): ISuperObject;
 var
   g: TGUID;
@@ -1467,36 +1818,6 @@ begin
       o := SO(obj.AsString);
       if not ObjectIsType(o, stString) then
         Result := serialfromboolean(ctx, SO(obj.AsString), Value) else
-        Result := False;
-    end;
-  else
-    Result := False;
-  end;
-end;
-
-function serialfromdatetime(ctx: TSuperRttiContext; const obj: ISuperObject; var Value: TValue): Boolean;
-var
-  dt: TDateTime;
-  i: Int64;
-begin
-  case ObjectGetType(obj) of
-  stInt:
-    begin
-      TValueData(Value).FAsDouble := JavaToDelphiDateTime(obj.AsInteger);
-      Result := True;
-    end;
-  stString:
-    begin
-      if ISO8601DateToJavaDateTime(obj.AsString, i) then
-      begin
-        TValueData(Value).FAsDouble := JavaToDelphiDateTime(i);
-        Result := True;
-      end else
-      if TryStrToDateTime(obj.AsString, dt) then
-      begin
-        TValueData(Value).FAsDouble := dt;
-        Result := True;
-      end else
         Result := False;
     end;
   else
@@ -1637,6 +1958,62 @@ begin
   else
     Exit(irError);
   end;
+end;
+
+function IsGenericType(TypeInfo: PTypeInfo): Boolean;
+begin
+  Result := Pos('<', String(TypeInfo.Name)) > 0
+end;
+
+function CreateInstance(RttiContext: TRttiContext; TypeInfo: PTypeInfo): TValue;
+var
+  method: TRttiMethod;
+begin
+  for method in RttiContext.GetType(TypeInfo).GetMethods() do
+  begin
+    if method.IsConstructor and (Length(method.GetParameters) = 0) then
+    begin
+      Result := method.Invoke(GetTypeData(TypeInfo).ClassType, []);
+      Exit;
+    end
+  end;
+
+  raise Exception.CreateFmt('No default constructor found for clas "%s".', [GetTypeData(TypeInfo).ClassType.ClassName]);
+end;
+
+function GetDeclaredGenericType(RttiContext: TRttiContext; TypeInfo: PTypeInfo): TRttiType;
+var
+  startPos,
+  endPos: Integer;
+  vTypeName: String;
+begin
+  Result := nil;
+  vTypeName := string(typeinfo.name);
+  startPos := AnsiPos('<', vTypeName);
+
+  if startPos < 1 then
+  begin
+    vTypeName := RttiContext.GetType(TypeInfo).BaseType.ToString;
+    startPos := AnsiPos('<', vTypeName);
+  end;
+
+  if startPos > 0 then
+  begin
+    endPos := Pos('>', vTypeName);
+    vTypeName := Copy(vTypeName, startPos + 1, endPos - Succ(startPos));
+    Result := RttiContext.FindType(vTypeName);
+  end;
+end;
+
+function IsList(RttiContext: TRttiContext; TypeInfo: PTypeInfo): Boolean;
+var
+  method: TRttiMethod;
+begin
+  method := RttiContext.GetType(TypeInfo).GetMethod('Add');
+
+  Result := (method <> nil) and
+            (method.MethodKind = mkFunction) and
+            (Length(method.GetParameters) = 1)
 end;
 
 {$ENDIF}
@@ -2701,8 +3078,7 @@ redo_char:
                      TokRec^.current := TSuperObject.Create(dt);
                      TokRec^.parent.AsObject.PutO(tok.pb.Fbuf, TokRec^.current);
                    end;
-                   if not (foDelete in options) then
-                     TokRec^.current := TokRec^.parent.AsObject.GetO(tok.pb.Fbuf);
+                   TokRec^.current := TokRec^.parent.AsObject.GetO(tok.pb.Fbuf);
                    TokRec^.state := tsFinish;
                    goto redo_char;
                  end;
@@ -3407,8 +3783,6 @@ begin
         for j := 0 to arr.Length - 1 do
           Add(arr.GetO(j).Clone);
       end;
-    stNull:
-      Result := TSuperObject.Create(stNull);
   else
     Result := nil;
   end;
@@ -5856,10 +6230,9 @@ begin
   SerialToJson := TDictionary<PTypeInfo, TSerialToJson>.Create;
 
   SerialFromJson.Add(TypeInfo(Boolean), serialfromboolean);
-  SerialFromJson.Add(TypeInfo(TDateTime), serialfromdatetime);
   SerialFromJson.Add(TypeInfo(TGUID), serialfromguid);
   SerialToJson.Add(TypeInfo(Boolean), serialtoboolean);
-  SerialToJson.Add(TypeInfo(TDateTime), serialtodatetime);
+
   SerialToJson.Add(TypeInfo(TGUID), serialtoguid);
 end;
 
@@ -5896,7 +6269,8 @@ var
   ret: TValue;
 begin
   if FromJson(TypeInfo(T), obj, ret) then
-    Result := ret.AsType<T> else
+    Result := ret.AsType<T>
+  else
     raise exception.Create('Marshalling error');
 end;
 
@@ -5954,6 +6328,12 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
         end else
           Result := False;
       end;
+    stNull:
+      begin
+        TValue.Make(nil, TypeInfo, Value);
+        TValueData(Value).FAsSInt64 := -1;
+        result := true;
+      end;
     else
       Result := False;
     end;
@@ -5982,6 +6362,11 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
         if not ObjectIsType(o, stString) then
           FromInt(o) else
           Result := False;
+      end;
+    stNull:
+      begin
+        TValue.Make(-1, TypeInfo, Value);
+        result := true;
       end;
     else
       Result := False;
@@ -6017,6 +6402,8 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
   procedure FromFloat(const obj: ISuperObject);
   var
     o: ISuperObject;
+    fmtSettings: TFormatSettings;
+    dt: TDateTime;
   begin
     case ObjectGetType(obj) of
     stInt, stDouble, stCurrency:
@@ -6033,6 +6420,32 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
       end;
     stString:
       begin
+          fmtSettings.DateSeparator := '-';
+          fmtSettings.TimeSeparator := ':';
+          fmtSettings.ShortDateFormat := 'yyyy-mm-dd';
+          fmtSettings.LongDateFormat := 'yyyy-mm-dd';
+          fmtSettings.ShortTimeFormat := 'hh:nn:ss';
+          fmtSettings.LongTimeFormat := 'hh:nn:ss';
+          if TypeInfo.name = 'TDate' then
+          begin
+            value := TValue.from<TDate>(StrToDate(obj.AsString, fmtSettings));
+            result := true;
+          end
+          else if TypeInfo.name = 'TTime' then
+          begin
+            value := TValue.from<TTime>(StrToTime(obj.AsString, fmtSettings));
+            result := true;
+          end
+          else if TypeInfo.name = 'TDateTime' then
+          begin
+            if ISO8601DateToDelphiDateTime(SOString(obj.AsString), dt) then
+            begin
+              value := TValue.From<TDateTime>(dt);
+              result := true;
+            end;
+          end;
+          if result then
+            exit;
         o := SO(obj.AsString);
         if not ObjectIsType(o, stString) then
           FromFloat(o) else
@@ -6063,13 +6476,16 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
   var
     f: TRttiField;
     v: TValue;
+    vArray: TSuperArray;
+    i: Integer;
+    method: TRttiMethod;
   begin
     case ObjectGetType(obj) of
       stObject:
         begin
           Result := True;
           if Value.Kind <> tkClass then
-            Value := GetTypeData(TypeInfo).ClassType.Create;
+            Value := CreateInstance(Context, TypeInfo);
           for f in Context.GetType(Value.AsObject.ClassType).GetFields do
             if f.FieldType <> nil then
             begin
@@ -6079,6 +6495,36 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
                 f.SetValue(Value.AsObject, v) else
                 Exit;
             end;
+        end;
+      stArray:
+        begin
+          Result := False;
+
+
+          if IsList(Context, TypeInfo) then
+          begin
+            Result := True;
+
+            if Value.Kind <> tkClass then
+            begin
+              Value := CreateInstance(Context, TypeInfo);
+            end;
+
+            method := Context.GetType(Value.AsObject.ClassType).GetMethod('Add');
+
+            vArray := obj.AsArray;
+            for I := 0 to vArray.Length-1 do
+            begin
+              v := TValue.Empty;
+
+              Result := FromJson(GetDeclaredGenericType(Context, TypeInfo).Handle, vArray[i], v);
+
+              if Result then
+                method.Invoke(Value.AsObject, [v])
+              else
+                Exit;
+            end;
+          end;
         end;
       stNull:
         begin
@@ -6320,7 +6766,6 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
 var
   Serial: TSerialFromJson;
 begin
-
   if TypeInfo <> nil then
   begin
     if not SerialFromJson.TryGetValue(TypeInfo, Serial) then
@@ -6341,7 +6786,9 @@ begin
         tkDynArray: FromDynArray;
         tkClassRef: FromClassRef;
       else
-        FromUnknown
+      begin
+        FromUnknown;
+      end
       end else
       begin
         TValue.Make(nil, TypeInfo, Value);
@@ -6351,7 +6798,7 @@ begin
     Result := False;
 end;
 
-function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject): ISuperObject;
+function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject; _listCount: integer; field: TRttiField): ISuperObject;
   procedure ToInt64;
   begin
     Result := TSuperObject.Create(SuperInt(Value.AsInt64));
@@ -6368,13 +6815,45 @@ function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject):
   end;
 
   procedure ToFloat;
+  var
+    vUsingISO8601: Boolean;
   begin
-    case Value.TypeData.FloatType of
-      ftSingle: Result := TSuperObject.Create(TValueData(Value).FAsSingle);
-      ftDouble: Result := TSuperObject.Create(TValueData(Value).FAsDouble);
-      ftExtended: Result := TSuperObject.Create(TValueData(Value).FAsExtended);
-      ftComp: Result := TSuperObject.Create(TValueData(Value).FAsSInt64);
-      ftCurr: Result := TSuperObject.CreateCurrency(TValueData(Value).FAsCurr);
+    result := nil;
+    vUsingISO8601 := Assigned(field) and field.FormatUsingISO8601;
+
+    if (vUsingISO8601) and (value.TypeInfo = TypeInfo(TTime)) then
+    begin
+      if TValueData(value).FAsDouble > 0 then
+      begin
+        result := TSuperObject.create(copy(DelphiDateTimeToISO8601Date(TValueData(Value).FAsDouble), 12, 8)) // 08:00:00 - should there be a timezone here?
+      end;
+    end
+    else if (vUsingISO8601) and (value.TypeInfo = TypeInfo(TDate)) then
+    begin
+      if TValueData(value).FAsDouble > 0 then
+      begin
+        result := TSuperObject.create(copy(DelphiDateTimeToISO8601Date(TValueData(Value).FAsDouble), 1, 10)) // 2013-12-17
+      end;
+    end
+    else if value.TypeInfo = TypeInfo(TDateTime) then
+    begin
+      if TValueData(value).FAsDouble > 0 then
+      begin
+        if vUsingISO8601 then
+          result := TSuperObject.create(DelphiDateTimeToISO8601Date(TValueData(Value).FAsDouble))
+        else
+          result := TSuperObject.create(DelphiToJavaDateTime(TValueData(Value).FAsDouble));
+      end;
+    end
+    else
+    begin
+      case Value.TypeData.FloatType of
+        ftSingle: Result := TSuperObject.Create(TValueData(Value).FAsSingle);
+        ftDouble: Result := TSuperObject.Create(TValueData(Value).FAsDouble);
+        ftExtended: Result := TSuperObject.Create(TValueData(Value).FAsExtended);
+        ftComp: Result := TSuperObject.Create(TValueData(Value).FAsSInt64);
+        ftCurr: Result := TSuperObject.CreateCurrency(TValueData(Value).FAsCurr);
+      end;
     end;
   end;
 
@@ -6387,20 +6866,38 @@ function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject):
   var
     o: ISuperObject;
     f: TRttiField;
-    v: TValue;
+    v, items: TValue;
+    jsonValue: ISuperObject;
   begin
     if TValueData(Value).FAsObject <> nil then
     begin
-      o := index[IntToStr(NativeInt(Value.AsObject))];
+      o := index[IntToStr(Integer(Value.AsObject))];
       if o = nil then
       begin
         Result := TSuperObject.Create(stObject);
-        index[IntToStr(NativeInt(Value.AsObject))] := Result;
+        index[IntToStr(Integer(Value.AsObject))] := Result;
         for f in Context.GetType(Value.AsObject.ClassType).GetFields do
           if f.FieldType <> nil then
           begin
             v := f.GetValue(Value.AsObject);
-            Result.AsObject[GetFieldName(f)] := ToJson(v, index);
+            if IsList(Context, value.TypeInfo) then
+            begin
+              if (GetFieldName(f) = 'FItems') then
+              begin
+                items := v;
+              end
+              else if (GetFieldName(f) = 'FCount') then
+              begin
+                Result := ToJson(items, index, v.AsInteger);
+              end;
+              Continue;
+            end;
+
+            jsonValue := ToJson(v, index, -1, f);
+            if jsonValue <> nil then
+            begin
+              Result.AsObject[GetFieldName(f)] := jsonValue;
+            end;
           end
       end else
         Result := o;
@@ -6485,12 +6982,22 @@ function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject):
   var
     i: Integer;
     v: TValue;
+    count: integer;
   begin
     Result := TSuperObject.Create(stArray);
-    for i := 0 to Value.GetArrayLength - 1 do
+    count := Value.GetArrayLength;
+    // if the array is a TList the `Value.GetArrayLength` will give the wrong value.
+    // `Value.GetArrayLength` will return the TList's capacity.
+    // Fx. if the TList has 1/2 elements `Value.GetArrayLength` will return 1/2.
+    // If add a 3. `Value.GetArrayLength` will then return 4.
+    // There for will need to now the count size before calling this function.
+    if _listCount > -1 then
+      count := _listCount;
+    for i := 0 to count - 1 do
     begin
       v := Value.GetArrayElement(i);
-      Result.AsArray.Add(toJSon(v, index));
+      if not v.IsEmpty then
+        Result.AsArray.Add(toJSon(v, index));
     end;
   end;
 
