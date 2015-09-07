@@ -114,7 +114,7 @@ uses
 {$IFDEF HAVE_RTTI}
   , Generics.Collections, RTTI, TypInfo, DbxJsonUtils, DBXJsonHelpers
 {$ENDIF}
-  ;
+  , superdate;
 
 type
 {$IFNDEF FPC}

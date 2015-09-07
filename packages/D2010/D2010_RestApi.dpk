@@ -32,7 +32,8 @@ requires
   DbxCommonDriver,
   IndySystem140,
   IndyCore140,
-  IndyProtocols140;
+  IndyProtocols140,
+  soaprtl;
 
 contains
   RestClient in '..\..\src\RestClient.pas',
@@ -46,6 +47,8 @@ contains
   HttpConnectionFactory in '..\..\src\HttpConnectionFactory.pas',
   JsonToDataSetConverter in '..\..\src\JsonToDataSetConverter.pas',
   RestRegister in '..\..\src\RestRegister.pas',
-  Wcrypt2 in '..\..\lib\Wcrypt2.pas';
+  Wcrypt2 in '..\..\lib\Wcrypt2.pas',
+  superdate in '..\..\lib\superobject\superdate.pas',
+  supertimezone in '..\..\lib\superobject\supertimezone.pas';
 
 end.

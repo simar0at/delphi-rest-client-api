@@ -57,6 +57,7 @@
 			<DCCReference Include="IndySystem140.dcp"/>
 			<DCCReference Include="IndyCore140.dcp"/>
 			<DCCReference Include="IndyProtocols140.dcp"/>
+			<DCCReference Include="soaprtl.dcp"/>
 			<DCCReference Include="..\..\src\RestClient.pas"/>
 			<DCCReference Include="..\..\src\RestUtils.pas"/>
 			<DCCReference Include="..\..\lib\superobject\superobject.pas"/>
@@ -69,6 +70,8 @@
 			<DCCReference Include="..\..\src\JsonToDataSetConverter.pas"/>
 			<DCCReference Include="..\..\src\RestRegister.pas"/>
 			<DCCReference Include="..\..\lib\Wcrypt2.pas"/>
+			<DCCReference Include="..\..\lib\superobject\superdate.pas"/>
+			<DCCReference Include="..\..\lib\superobject\supertimezone.pas"/>
 			<BuildConfiguration Include="Basis">
 				<Key>Base</Key>
 			</BuildConfiguration>
