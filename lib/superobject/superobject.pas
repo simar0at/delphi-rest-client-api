@@ -6271,7 +6271,7 @@ begin
   if FromJson(TypeInfo(T), obj, ret) then
     Result := ret.AsType<T>
   else
-    raise exception.Create('Marshalling error');
+    raise exception.Create('Marshalling error' + sLineBreak + obj.AsString);
 end;
 
 function TSuperRttiContext.AsJson<T>(const obj: T; const index: ISuperObject = nil): ISuperObject;

@@ -29,7 +29,10 @@ requires
   vcl,
   dbrtl,
   dsnap,
-  DbxCommonDriver;
+  DbxCommonDriver,
+  IndySystem140,
+  IndyCore140,
+  IndyProtocols140;
 
 contains
   RestClient in '..\..\src\RestClient.pas',
