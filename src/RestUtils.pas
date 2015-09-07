@@ -34,10 +34,23 @@ type
 
     (* 400 Bad Request, see {@link <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.1">HTTP/1.1 documentation</a>}*)
     class function BAD_REQUEST: TReponseCode;
+
+    (* 401 Unauthorized, see {@link <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2">HTTP/1.1 documentation</a>}*)
+    class function UNAUTHORIZED: TReponseCode;
+
+    (* 407 Proxy Authentication Required, see {@link <a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.8">HTTP/1.1 documentation</a>}*)
+    class function PROXY_AUTHENTICATION_REQUIRED: TReponseCode;
+  end;
+
+  TRestUtils = class
+  public
+    class function Base64Encode(const AValue: String): String;
+    class function Base64Decode(const AValue: String): String;
   end;
 
 implementation
 
+uses EncdDecd;
 
 { TStatusCode }
 
@@ -75,6 +88,30 @@ class function TStatusCode.OK: TReponseCode;
 begin
   Result.StatusCode := 200;
   Result.Reason := 'OK';
+end;
+
+class function TStatusCode.PROXY_AUTHENTICATION_REQUIRED: TReponseCode;
+begin
+  Result.StatusCode := 407;
+  Result.Reason := 'Proxy Authentication Required';
+end;
+
+class function TStatusCode.UNAUTHORIZED: TReponseCode;
+begin
+  Result.StatusCode := 401;
+  Result.Reason := 'Unauthorized';
+end;
+
+{ TRestUtils }
+
+class function TRestUtils.Base64Decode(const AValue: String): String;
+begin
+  Result := EncdDecd.DecodeString(AValue);
+end;
+
+class function TRestUtils.Base64Encode(const AValue: String): String;
+begin
+  Result := EncdDecd.EncodeString(AValue);
 end;
 
 end.

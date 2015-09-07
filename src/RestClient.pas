@@ -58,6 +58,9 @@ type
     FEnabledCompression: Boolean;
     FOnCustomCreateConnection: TCustomCreateConnection;
     FTimeOut: TTimeOut;
+    FProxyCredentials: TProxyCredentials;
+    FLogin: String;
+    FPassword: String;
 
     {$IFDEF DELPHI_2009_UP}
     FTempHandler: TRestResponseHandlerFunc;
@@ -83,6 +86,7 @@ type
 
     function GetOnError: THTTPErrorEvent;
     procedure SetOnError(AErrorEvent: THTTPErrorEvent);
+    function GetResponseHeader(const Header: string): string;
 
   protected
     procedure Loaded; override;
@@ -91,10 +95,13 @@ type
     destructor Destroy; override;
 
     property ResponseCode: Integer read GetResponseCode;
+    property ResponseHeader[const Header: string]: string read GetResponseHeader;
 
     function Resource(URL: String): TResource;
 
     function UnWrapConnection: IHttpConnection;
+
+    function SetCredentials(const ALogin, APassword: String): TRestClient;
 
     property OnConnectionLost: THTTPConnectionLostEvent read GetOnConnectionLost write SetOnConnectionLost;
     property OnError: THTTPErrorEvent read GetOnError write SetOnError;
@@ -103,6 +110,7 @@ type
     property EnabledCompression: Boolean read FEnabledCompression write SetEnabledCompression default True;
     property OnCustomCreateConnection: TCustomCreateConnection read FOnCustomCreateConnection write FOnCustomCreateConnection;
     property TimeOut: TTimeOut read FTimeOut;
+    property ProxyCredentials: TProxyCredentials read FProxyCredentials;
   end;
 
   TCookie = class
@@ -194,6 +202,7 @@ type
     {$IFDEF USE_SUPER_OBJECT}
     procedure GetAsDataSet(ADataSet: TDataSet);overload;
     function GetAsDataSet(): TDataSet;overload;
+    function GetAsDataSet(const RootElement: String): TDataSet;overload;
     {$ENDIF}
   end;
 
@@ -219,6 +228,13 @@ begin
   FTimeOut := TTimeOut.Create(Self);
   FTimeOut.Name := 'TimeOut';
   FTimeOut.SetSubComponent(True);
+
+  FProxyCredentials := TProxyCredentials.Create(Self);
+  FProxyCredentials.Name := 'ProxyCredentials';
+  FProxyCredentials.SetSubComponent(True);
+ 
+  FLogin := '';
+  FPassword := '';
 
   FEnabledCompression := True;
 end;
@@ -248,21 +264,34 @@ begin
 end;
 
 function TRestClient.DoRequest(Method: TRequestMethod; ResourceRequest: TResource; AHandler: TRestResponseHandler): String;
+const
+  AuthorizationHeader = 'Authorization';
 var
   vResponse: TStringStream;
   vUrl: String;
   vResponseString: string;
   vRetryMode: THTTPRetryMode;
+  vHeaders: TStrings;
+  vEncodedCredentials: string;
 begin
   CheckConnection;
 
   vResponse := TStringStream.Create('');
   try
+    vHeaders := ResourceRequest.GetHeaders;
+
+    if (FLogin <> EmptyStr) and (vHeaders.IndexOfName(AuthorizationHeader) = -1) then
+    begin
+      vEncodedCredentials := TRestUtils.Base64Encode(Format('%s:%s', [FLogin, FPassword]));
+      vHeaders.Values[AuthorizationHeader] := 'Basic ' + vEncodedCredentials;
+    end;
+
     FHttpConnection.SetAcceptTypes(ResourceRequest.GetAcceptTypes)
                    .SetContentTypes(ResourceRequest.GetContentTypes)
-                   .SetHeaders(ResourceRequest.GetHeaders)
+                   .SetHeaders(vHeaders)
                    .SetAcceptedLanguages(ResourceRequest.GetAcceptedLanguages)
-                   .ConfigureTimeout(FTimeOut);
+                   .ConfigureTimeout(FTimeOut)
+                   .ConfigureProxyCredentials(FProxyCredentials);
 
     vUrl := ResourceRequest.GetURL;
 
@@ -349,6 +378,13 @@ begin
   Result := FHttpConnection.ResponseCode;
 end;
 
+function TRestClient.GetResponseHeader(const Header: string): string;
+begin
+  CheckConnection;
+
+  Result := FHttpConnection.ResponseHeader[Header];
+end;
+
 procedure TRestClient.RecreateConnection;
 begin
   if not (csDesigning in ComponentState) then
@@ -393,6 +429,13 @@ begin
 
     RecreateConnection;
   end;
+end;
+
+function TRestClient.SetCredentials(const ALogin, APassword: String): TRestClient;
+begin
+  FLogin := ALogin;
+  FPassword := APassword;
+  Result := Self;
 end;
 
 procedure TRestClient.SetEnabledCompression(const Value: Boolean);
@@ -716,6 +759,19 @@ end;
 {$ENDIF}
 
 {$IFDEF USE_SUPER_OBJECT}
+function TResource.GetAsDataSet(const RootElement: String): TDataSet;
+var
+  vJson: ISuperObject;
+begin
+  if RootElement <> EmptyStr then begin
+    vJson := SuperObject.SO(Get);
+    Result := TJsonToDataSetConverter.CreateDataSetMetadata(vJson[RootElement]);
+    TJsonToDataSetConverter.UnMarshalToDataSet(Result, vJson[RootElement]);
+  end else begin
+    Result:=GetasDataSet();
+  end;
+end;
+
 function TResource.GetAsDataSet: TDataSet;
 var
   vJson: ISuperObject;
