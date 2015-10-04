@@ -4,7 +4,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses TestFramework, DbxJsonMarshal, TypesToTest, RestJsonUtils,
+uses TestFramework, DbxJsonMarshal, TypesToTest, RestJsonUtils, RestJsonDateTimeUtils,
      Generics.Collections, SuperObject, DbxJson, DBXJsonHelpers,
      DBXJsonUnMarshal, DbxJsonUtils
     {$IFDEF DELPHI_XE6_UP}, Json{$ENDIF}

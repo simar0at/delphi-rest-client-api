@@ -6,6 +6,11 @@ interface
 
 uses BaseTestRest, RestUtils, IdHTTPServer, IdCustomHTTPServer, IdContext, HttpConnection, IdHeaderList;
 
+
+{$IFDEF DELPHI_XE_UP}
+  {$DEFINE HAVE_INDY_FROM_DELPHI_XE_UP}
+{$ENDIF}
+
 type
   TTestHeader = class(TBaseTestRest)
   private
@@ -17,7 +22,7 @@ type
     function CreateHttpServer: TIdHTTPServer;
     procedure DestroyHttpServer;
 
-    {$IFDEF DELPHI_XE_UP}
+    {$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
     procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
     {$ELSE}
     procedure OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
@@ -182,7 +187,7 @@ begin
   CheckEqualsString('{"x-foo":"Bar"}', vResponse);
 end;
 
-{$IFDEF DELPHI_XE_UP}
+{$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
 procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
 {$ELSE}
 procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
