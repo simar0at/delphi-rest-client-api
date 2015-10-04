@@ -114,7 +114,7 @@ uses
 {$IFDEF HAVE_RTTI}
   , Generics.Collections, RTTI, TypInfo, DbxJsonUtils, DBXJsonHelpers
 {$ENDIF}
-  ;
+  , superdate;
 
 type
 {$IFNDEF FPC}
@@ -863,7 +863,7 @@ function CreateInstance(RttiContext: TRttiContext; TypeInfo: PTypeInfo): TValue 
 {$ENDIF}
 
 implementation
-uses sysutils, RestJsonDateTimeUtils, variants,
+uses sysutils, RestJsonDateTimeUtils, RestJsonUtils, variants,
 {$IFDEF UNIX}
   baseunix, unix, DateUtils
 {$ELSE}
