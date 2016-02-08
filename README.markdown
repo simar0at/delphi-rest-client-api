@@ -3,7 +3,7 @@ Delphi REST Client API
 
 A Delphi REST client API to consume REST services written in any programming language.
 
-The API was tested in Delphi 7, XE, XE2, XE3, XE4 and XE7. It is also compatible with Mac OSX and iOS.
+The API it is designed to work with Delphi 7 or later. Newer versions takes advantage of Generics Methods.
 
 ## Connection Layer
 
@@ -137,6 +137,26 @@ begin
   end;
 ```
 
+- **ASYNC REQUESTS**
+
+```Delphi
+  //Implement OnAsyncRequestProcess event to allow cancelling a request or update the UI
+  RestClient.OnAsyncRequestProcess :=
+    procedure(var Cancel: Boolean)
+    begin
+      Cancel := True; // Set cancel to true to abort the request
+    end;
+
+// This will raise an EAbort if the request is canceled 
+ RestClient.Resource(CONTEXT_PATH + 'async')
+            .Accept('text/plain')
+            .Async
+            .GET();
+```
+
+> **NOTE:** Async request is only supported for `WinHTTP`.
+> Any thought about how to implement this feature for `Indy` and `WinInet` are welcome.
+
 ## Authentication
 
 RestClient supports HTTP Basic authentication. You can set credentials using the `SetCredentials` method before making the first request:
@@ -146,6 +166,72 @@ RestClient.SetCredentials('username', 'password');
 ```
 
 You can set it once and it will be used for every request.
+
+## Self-signed certificates
+
+To skip certificate validation set `VerifyCert` to false.
+
+```delphi
+RestClient.VerifyCert := false;
+```
+
+> **Indy note:** Certificate validation is not yet supported with `Indy`.
+> Certificates will not be validated!
+> Any thought about how to implement this feature for `Indy` are welcome.
+
+## Error events
+
+### Retry modes
+  
+  * hrmRaise (default)   
+    Raises an exception after the event.
+  * hrmIgnore   
+    Ignore the error. No exception will be raised after the event.
+  * hrmRetry   
+    Retries the request.
+
+### THTTPErrorEvent
+
+Triggered for all status codes equal or above 400.
+
+The following example will ignore the status code 404.
+This will result in an empty response (nil for objects).
+You'll have to check if your objects has been assigned after every request. 
+
+`AHTTPError.ErrorMessage` contains the content of the response.
+You can deserialize this to display your own error message (see `RestJsonUtils.TJsonUtil`).
+
+```delphi
+restclient := TRestClient.Create(self); 
+restclient.ConnectionType := hctWinINet;
+restclient.OnError := RestError;
+
+procedure Tdm.RestError(ARestClient: TRestClient; AResource: restclient.TResource;
+  AMethod: TRequestMethod; AHTTPError: EHTTPError;
+  var ARetryMode: THTTPRetryMode);
+begin
+  ARetryMode := hrmRaise;
+  if AHTTPError.ErrorCode = 404 then
+    ARetryMode := hrmIgnore;
+end;
+```
+
+### THTTPConnectionLostEvent
+The following example will retry the request forever.
+If you want it to only retry for at limited time, you'll have to
+implement that counter your self.
+
+```delphi
+restclient := TRestClient.Create(self); 
+restclient.ConnectionType := hctWinINet;
+restclient.OnConnectionLost := RestConnectionLost;
+
+procedure Tdm.RestConnectionLost(AException: Exception; var ARetryMode: THTTPRetryMode);
+begin
+  ARetryMode := hrmRetry;
+  sleep(1000);
+end;
+```
 
 ## Java Rest Server
 

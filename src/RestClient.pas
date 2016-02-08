@@ -1,17 +1,17 @@
 unit RestClient;
 
-interface
-
 {$I DelphiRest.inc}
+
+interface
 
 uses Classes, SysUtils, HttpConnection,
      RestUtils, RestJsonUtils,
-     {$IFDEF USE_GENERICS}
+     {$IFDEF SUPPORTS_GENERICS}
      Generics.Collections, Rtti,
      {$ELSE}
      Contnrs, OldRttiUnMarshal,
      {$ENDIF}
-     DB, JsonListAdapter;
+     DB, JsonListAdapter, RestException;
 
 const
   DEFAULT_COOKIE_VERSION = 1; {Cookies using the default version correspond to RFC 2109.}
@@ -19,7 +19,7 @@ const
 type
   TRequestMethod = (METHOD_GET, METHOD_POST, METHOD_PUT, METHOD_PATCH, METHOD_DELETE);
 
-  {$IFDEF DELPHI_2009_UP}
+  {$IFDEF SUPPORTS_ANONYMOUS_METHODS}
   TRestResponseHandlerFunc = reference to procedure(ResponseContent: TStream);
   {$ENDIF}
   TRestResponseHandler = procedure (ResponseContent: TStream) of object;
@@ -27,11 +27,6 @@ type
   TResource = class;
 
   TCustomCreateConnection = procedure(Sender: TObject; AConnectionType: THttpConnectionType; out AConnection: IHttpConnection) of object;
-
-  ERestClientException = class(Exception);
-  EInvalidHttpConnectionConfiguration = class(ERestClientException);
-  ECustomCreateConnectionException = class(ERestClientException);
-  EInactiveConnection = class(ERestClientException);
 
   TJsonListAdapter = class(TInterfacedObject, IJsonListAdapter)
   private
@@ -46,10 +41,20 @@ type
     class function NewFrom(AList: TList; AItemClass: TClass): IJsonListAdapter;
   end;
 
+  TRestClient = class;
+
+  TRestOnRequestEvent = procedure (ARestClient: TRestClient;
+    AResource: TResource; AMethod: TRequestMethod) of object;
+
+
+  THTTPErrorEvent = procedure(ARestClient: TRestClient; AResource: TResource;
+    AMethod: TRequestMethod; AHTTPError: EHTTPError;
+    var ARetryMode: THTTPRetryMode) of object;
+
   TRestClient = class(TComponent)
   private
     FHttpConnection: IHttpConnection;
-    {$IFDEF USE_GENERICS}
+    {$IFDEF SUPPORTS_GENERICS}
     FResources: TObjectList<TResource>;
     {$ELSE}
     FResources: TObjectList;
@@ -60,9 +65,13 @@ type
     FTimeOut: TTimeOut;
     FProxyCredentials: TProxyCredentials;
     FLogin: String;
+    FOnAsyncRequestProcess: TAsyncRequestProcessEvent;
     FPassword: String;
+    FOnError: THTTPErrorEvent;
 
-    {$IFDEF DELPHI_2009_UP}
+    FVerifyCert: boolean;
+
+    {$IFDEF SUPPORTS_ANONYMOUS_METHODS}
     FTempHandler: TRestResponseHandlerFunc;
     procedure DoRequestFunc(Method: TRequestMethod; ResourceRequest: TResource; AHandler: TRestResponseHandlerFunc);
     procedure HandleAnonymousMethod(ResponseContent: TStream);
@@ -87,10 +96,14 @@ type
     function GetOnError: THTTPErrorEvent;
     procedure SetOnError(AErrorEvent: THTTPErrorEvent);
     function GetResponseHeader(const Header: string): string;
+    procedure SetVerifyCertificate(AValue: boolean);
 
   protected
     procedure Loaded; override;
   public
+    OnBeforeRequest: TRestOnRequestEvent;
+    OnAfterRequest: TRestOnRequestEvent;
+
     constructor Create(Owner: TComponent); override;
     destructor Destroy; override;
 
@@ -105,9 +118,12 @@ type
 
     property OnConnectionLost: THTTPConnectionLostEvent read GetOnConnectionLost write SetOnConnectionLost;
     property OnError: THTTPErrorEvent read GetOnError write SetOnError;
+    property OnAsyncRequestProcess: TAsyncRequestProcessEvent read FOnAsyncRequestProcess write FOnAsyncRequestProcess;
+
   published
     property ConnectionType: THttpConnectionType read FConnectionType write SetConnectionType;
     property EnabledCompression: Boolean read FEnabledCompression write SetEnabledCompression default True;
+    property VerifyCert: Boolean read FVerifyCert write SetVerifyCertificate default True;
     property OnCustomCreateConnection: TCustomCreateConnection read FOnCustomCreateConnection write FOnCustomCreateConnection;
     property TimeOut: TTimeOut read FTimeOut;
     property ProxyCredentials: TProxyCredentials read FProxyCredentials;
@@ -137,6 +153,7 @@ type
     FContentTypes: string;
     FHeaders: TStrings;
     FAcceptedLanguages: string;
+    FAsync: Boolean;
 
     constructor Create(RestClient: TRestClient; URL: string);
     procedure SetContent(entity: TObject);
@@ -149,8 +166,10 @@ type
     function GetContentTypes: string;
     function GetHeaders: TStrings;
     function GetAcceptedLanguages: string;
+    function GetAsync: Boolean;
 
     function Accept(AcceptType: String): TResource;
+    function Async(const Value: Boolean = True): TResource;
     function ContentType(ContentType: String): TResource;
     function AcceptLanguage(Language: String): TResource;
 
@@ -180,14 +199,14 @@ type
     procedure Delete();overload;
     procedure Delete(Entity: TObject);overload;
 
-    {$IFDEF DELPHI_2009_UP}
+    {$IFDEF SUPPORTS_ANONYMOUS_METHODS}
     procedure Get(AHandler: TRestResponseHandlerFunc);overload;
     procedure Post(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
     procedure Put(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
     procedure Patch(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
     {$ENDIF}
 
-    {$IFDEF USE_GENERICS}
+    {$IFDEF SUPPORTS_GENERICS}
     function Get<T>(): T;overload;
     function Post<T>(Entity: TObject): T;overload;
     function Put<T>(Entity: TObject): T;overload;
@@ -219,7 +238,7 @@ uses StrUtils, Math,
 constructor TRestClient.Create(Owner: TComponent);
 begin
   inherited;
-  {$IFDEF USE_GENERICS}
+  {$IFDEF SUPPORTS_GENERICS}
   FResources := TObjectList<TResource>.Create;
   {$ELSE}
   FResources := TObjectList.Create;
@@ -237,10 +256,13 @@ begin
   FPassword := '';
 
   FEnabledCompression := True;
+  FVerifyCert := True;
 end;
 
 destructor TRestClient.Destroy;
 begin
+  if FHttpConnection <> nil then
+    FHttpConnection.CancelRequest;
   FResources.Free;
   FHttpConnection := nil;
   inherited;
@@ -273,6 +295,7 @@ var
   vRetryMode: THTTPRetryMode;
   vHeaders: TStrings;
   vEncodedCredentials: string;
+  vHttpError: EHTTPError;
 begin
   CheckConnection;
 
@@ -291,20 +314,23 @@ begin
                    .SetHeaders(vHeaders)
                    .SetAcceptedLanguages(ResourceRequest.GetAcceptedLanguages)
                    .ConfigureTimeout(FTimeOut)
-                   .ConfigureProxyCredentials(FProxyCredentials);
+                   .ConfigureProxyCredentials(FProxyCredentials)
+                   .SetAsync(ResourceRequest.GetAsync)
+                   .SetOnAsyncRequestProcess(FOnAsyncRequestProcess);
 
     vUrl := ResourceRequest.GetURL;
 
     ResourceRequest.GetContent.Position := 0;
 
+    if assigned(OnBeforeRequest) then
+      OnBeforeRequest(self, ResourceRequest, Method);
     case Method of
       METHOD_GET: FHttpConnection.Get(vUrl, vResponse);
       METHOD_POST: FHttpConnection.Post(vURL, ResourceRequest.GetContent, vResponse);
       METHOD_PUT: FHttpConnection.Put(vURL, ResourceRequest.GetContent, vResponse);
       METHOD_PATCH: FHttpConnection.Patch(vURL, ResourceRequest.GetContent, vResponse);
-      METHOD_DELETE: FHttpConnection.Delete(vUrl, ResourceRequest.GetContent);
+      METHOD_DELETE: FHttpConnection.Delete(vUrl, ResourceRequest.GetContent, vResponse);
     end;
-
     if Assigned(AHandler) then
     begin
       AHandler(vResponse);
@@ -321,16 +347,32 @@ begin
         {$ENDIF}
       {$ELSE}
         vResponseString := vResponse.DataString;
-         
+
         Result := UTF8Decode(vResponse.DataString);
       {$ENDIF}
     end;
     if (FHttpConnection.ResponseCode >= TStatusCode.BAD_REQUEST.StatusCode) then
     begin
       vRetryMode := hrmRaise;
-      if assigned(OnError) then
-        FHttpConnection.OnError(format('HTTP Error: %d', [FHttpConnection.ResponseCode]), Result, FHttpConnection.ResponseCode, vRetryMode);
-
+      if assigned(FOnError) then
+      begin
+        vHttpError := EHTTPError.Create(
+          format('HTTP Error: %d', [FHttpConnection.ResponseCode]),
+          Result,
+          FHTTPConnection.ResponseCode
+        );
+        try
+          FOnError(
+            self,
+            ResourceRequest,
+            Method,
+            vHttpError,
+            vRetryMode
+          );
+        finally
+          vHttpError.Free;
+        end;
+      end;
       if vRetryMode = hrmRaise then
         raise EHTTPError.Create(
           format('HTTP Error: %d', [FHttpConnection.ResponseCode]),
@@ -338,15 +380,20 @@ begin
           FHttpConnection.ResponseCode
         )
       else if vRetryMode = hrmRetry then
-        result := DoRequest(Method, ResourceRequest, AHandler);
-    end;
+        result := DoRequest(Method, ResourceRequest, AHandler)
+      else
+        result := '';
+    end
+    else
+      if assigned(OnAfterRequest) then
+        OnAfterRequest(self, ResourceRequest, Method);
   finally
     vResponse.Free;
     FResources.Remove(ResourceRequest);
   end;
 end;
 
-{$IFDEF DELPHI_2009_UP}
+{$IFDEF SUPPORTS_ANONYMOUS_METHODS}
 procedure TRestClient.DoRequestFunc(Method: TRequestMethod; ResourceRequest: TResource; AHandler: TRestResponseHandlerFunc);
 begin
   FTempHandler := AHandler;
@@ -368,7 +415,7 @@ end;
 
 function TRestClient.GetOnError: THTTPErrorEvent;
 begin
-  result := FHttpConnection.OnError;
+  result := FOnError;
 end;
 
 function TRestClient.GetResponseCode: Integer;
@@ -421,6 +468,17 @@ begin
   FResources.Add(Result);
 end;
 
+procedure TRestClient.SetVerifyCertificate(AValue: boolean);
+begin
+  if FVerifyCert = AValue then
+    exit;
+  FVerifyCert := AValue;
+  if Assigned(FHttpConnection) then
+  begin
+    FHttpConnection.VerifyCert := FVerifyCert;
+  end;
+end;
+
 procedure TRestClient.SetConnectionType(const Value: THttpConnectionType);
 begin
   if (FConnectionType <> Value) then
@@ -459,7 +517,7 @@ end;
 
 procedure TRestClient.SetOnError(AErrorEvent: THTTPErrorEvent);
 begin
-  FHttpConnection.OnError := AErrorEvent;
+  FOnError := AErrorEvent;
 end;
 
 function TRestClient.UnWrapConnection: IHttpConnection;
@@ -520,7 +578,7 @@ begin
   FRestClient.DoRequest(METHOD_PUT, Self, AHandler);
 end;
 
-{$IFDEF DELPHI_2009_UP}
+{$IFDEF SUPPORTS_ANONYMOUS_METHODS}
 procedure TResource.Get(AHandler: TRestResponseHandlerFunc);
 begin
   FRestClient.DoRequestFunc(METHOD_GET, Self, AHandler);
@@ -570,6 +628,13 @@ begin
   Result := Header('Accept-Language', Language);
 end;
 
+function TResource.Async(const Value: Boolean = True): TResource;
+begin
+  FAsync := True;
+
+  Result := Self;
+end;
+
 function TResource.ContentType(ContentType: String): TResource;
 begin
   FContentTypes := ContentType;
@@ -617,6 +682,11 @@ begin
   Result := FAcceptTypes;
 end;
 
+function TResource.GetAsync: Boolean;
+begin
+   Result := FAsync;
+end;
+
 function TResource.GetContent: TStream;
 begin
   Result := FContent;
@@ -652,7 +722,7 @@ begin
   Result := FRestClient.DoRequest(METHOD_POST, Self);
 end;
 
-{$IFDEF USE_GENERICS}
+{$IFDEF SUPPORTS_GENERICS}
 function TResource.Get<T>(): T;
 var
   vResponse: string;
@@ -815,9 +885,11 @@ end;
 
 function TResource.Put(Content: TStream): String;
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
+  if Content <> nil then
+  begin
+    Content.Position := 0;
+    FContent.CopyFrom(Content, Content.Size);
+  end;
   Result := FRestClient.DoRequest(METHOD_PUT, Self);
 end;
 

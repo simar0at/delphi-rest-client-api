@@ -38,7 +38,9 @@ uses
   DbxJsonUnMarshal in '..\src\DbxJsonUnMarshal.pas',
   TestDBXJsonUtils in 'TestDBXJsonUtils.pas',
   TestDbxJsonMarshal in 'TestDbxJsonMarshal.pas',
-  TestRestUtils in 'TestRestUtils.pas';
+  TestRestUtils in 'TestRestUtils.pas',
+  TestSuperobject in 'TestSuperobject.pas',
+  RestException in '..\src\RestException.pas';
 
 {$R *.RES}
 

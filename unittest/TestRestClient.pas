@@ -4,7 +4,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses TestFramework, RestClient, HttpConnection, Classes, SysUtils;
+uses TestFramework, RestClient, HttpConnection, Classes, SysUtils, RestException;
 
 type
   TTestRestClient = class(TTestCase)
@@ -45,7 +45,7 @@ type
     procedure Post(AUrl: string; AContent, AResponse: TStream);virtual;abstract;
     procedure Put(AUrl: string; AContent, AResponse: TStream);virtual;abstract;
     procedure Patch(AUrl: string; AContent, AResponse: TStream);virtual;abstract;
-    procedure Delete(AUrl: string; AContent: TStream);virtual;abstract;
+    procedure Delete(AUrl: string; AContent, AResponse: TStream);virtual;abstract;
 
     function GetResponseCode: Integer;virtual;abstract;
     function GetResponseHeader(const Header: string): string; virtual;abstract;
@@ -53,15 +53,17 @@ type
 
     procedure SetEnabledCompression(const Value: Boolean);virtual;abstract;
 
-
     function GetOnConnectionLost: THTTPConnectionLostEvent;
     procedure SetOnConnectionLost(AConnectionLostEvent: THTTPConnectionLostEvent);
     property OnConnectionLost: THTTPConnectionLostEvent read GetOnConnectionLost write SetOnConnectionLost;
 
-    function GetOnError: THTTPErrorEvent;
-    procedure SetOnError(AConnectionLostEvent: THTTPErrorEvent);
-    property OnError: THTTPErrorEvent read GetOnError write SetOnError;
-  public
+    procedure SetVerifyCert(const Value: boolean);
+    function GetVerifyCert: boolean;virtual;abstract;
+
+    function SetAsync(const Value: Boolean): IHttpConnection; virtual; abstract;
+    procedure CancelRequest;
+
+    function SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
   end;
 
 { TTestRestClient }
@@ -127,6 +129,11 @@ begin
   CheckTrue(Supports(FRest.UnWrapConnection, IStubConnection));
 end;
 
+procedure TStubConnection.CancelRequest;
+begin
+
+end;
+
 { TStubConnection }
 
 function TStubConnection.GetOnConnectionLost: THTTPConnectionLostEvent;
@@ -134,9 +141,9 @@ begin
 
 end;
 
-function TStubConnection.GetOnError: THTTPErrorEvent;
+function TStubConnection.SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
 begin
-
+  Result := Self;
 end;
 
 procedure TStubConnection.SetOnConnectionLost(
@@ -145,7 +152,7 @@ begin
 
 end;
 
-procedure TStubConnection.SetOnError(AConnectionLostEvent: THTTPErrorEvent);
+procedure TStubConnection.SetVerifyCert(const Value: boolean);
 begin
 
 end;

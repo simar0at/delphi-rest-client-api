@@ -2,7 +2,8 @@ unit HttpConnectionWinHttp;
 
 interface
 
-uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, WinHttp_TLB;
+uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, WinHttp_TLB,
+  ComObj;
 
 type
   THttpConnectionWinHttp = class(TInterfacedObject, IHttpConnection)
@@ -18,13 +19,20 @@ type
     FProxyCredentials: TProxyCredentials;
     FLogin: String;
     FPassword: String;
+    FVerifyCert: boolean;
+    FAsync: Boolean;
+    FCancelRequest: Boolean;
+    FWaitingResponse: Boolean;
+    FOnAsyncRequestProcess: TAsyncRequestProcessEvent;
 
     procedure Configure;
 
     procedure CopyResourceStreamToStream(AResponse: TStream);
+    procedure WaitForResponse;
+  protected
+    procedure DoRequest(sMethod, AUrl: string; AContent, AResponse: TStream);
   public
     OnConnectionLost: THTTPConnectionLostEvent;
-    OnError: THTTPErrorEvent;
 
     constructor Create;
     destructor Destroy; override;
@@ -38,11 +46,13 @@ type
     procedure Post(AUrl: string; AContent: TStream; AResponse: TStream);
     procedure Put(AUrl: string; AContent: TStream; AResponse: TStream);
     procedure Patch(AUrl: string; AContent: TStream; AResponse: TStream);
-    procedure Delete(AUrl: string; AContent: TStream);
+    procedure Delete(AUrl: string; AContent: TStream; AResponse: TStream);
 
     function GetResponseCode: Integer;
     function GetResponseHeader(const Name: string): string;
 
+    function SetAsync(const Value: Boolean): IHttpConnection;
+    procedure CancelRequest;
 
     function GetEnabledCompression: Boolean;
     procedure SetEnabledCompression(const Value: Boolean);
@@ -50,10 +60,13 @@ type
     function GetOnConnectionLost: THTTPConnectionLostEvent;
     procedure SetOnConnectionLost(AConnectionLostEvent: THTTPConnectionLostEvent);
 
-    function GetOnError: THTTPErrorEvent;
-    procedure SetOnError(AErrorEvent: THTTPErrorEvent);
+    procedure SetVerifyCert(const Value: boolean);
+    function GetVerifyCert: boolean;
+
     function ConfigureTimeout(const ATimeOut: TTimeOut): IHttpConnection;
     function ConfigureProxyCredentials(AProxyCredentials: TProxyCredentials): IHttpConnection;
+
+    function SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
   end;
 
 implementation
@@ -67,6 +80,18 @@ const
   HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1;
 
 { THttpConnectionWinHttp }
+
+procedure THttpConnectionWinHttp.CancelRequest;
+begin
+  if not FAsync then
+    Exit;
+
+  while FWaitingResponse do
+  begin
+    FCancelRequest := True;
+    Sleep(50);
+  end;
+end;
 
 procedure THttpConnectionWinHttp.Configure;
 var
@@ -98,11 +123,14 @@ begin
     if ProxyServer <> '' then
     begin
       FWinHttpRequest.SetProxy(HTTPREQUEST_PROXYSETTING_PROXY, ProxyServer, GetProxyOverride);
-      if FProxyCredentials.Informed then
-        FWinHttpRequest.SetCredentials(FProxyCredentials.UserName, FProxyCredentials.Password,
-          HTTPREQUEST_SETCREDENTIALS_FOR_PROXY);
+      if assigned(FProxyCredentials) then
+        if FProxyCredentials.Informed then
+          FWinHttpRequest.SetCredentials(FProxyCredentials.UserName, FProxyCredentials.Password,
+            HTTPREQUEST_SETCREDENTIALS_FOR_PROXY);
     end;
   end;
+  if not FVerifyCert then
+    FWinHttpRequest.Option[WinHttpRequestOption_SslErrorIgnoreFlags] := SslErrorFlag_Ignore_All;
 end;
 
 function THttpConnectionWinHttp.ConfigureProxyCredentials(AProxyCredentials: TProxyCredentials): IHttpConnection;
@@ -141,16 +169,7 @@ begin
   FHeaders := TStringList.Create;
   FLogin:='';
   FPassword:='';
-end;
-
-procedure THttpConnectionWinHttp.Delete(AUrl: string; AContent: TStream);
-begin
-  FWinHttpRequest := CoWinHttpRequest.Create;
-  FWinHttpRequest.Open('DELETE', AUrl, false);
-
-  Configure;
-
-  FWinHttpRequest.Send(TStreamAdapter.Create(AContent, soReference) as IStream);
+  FVerifyCert := True;
 end;
 
 destructor THttpConnectionWinHttp.Destroy;
@@ -160,16 +179,89 @@ begin
   inherited;
 end;
 
+procedure THttpConnectionWinHttp.DoRequest(sMethod, AUrl: string; AContent,
+  AResponse: TStream);
+var
+  vAdapter: IStream;
+  retryMode: THTTPRetryMode;
+begin
+  FCancelRequest := False;
+  FWaitingResponse := True;
+  try
+    FWinHttpRequest := CoWinHttpRequest.Create;
+    FWinHttpRequest.Open(sMethod, AUrl, FAsync);
+
+    Configure;
+
+    vAdapter := nil;
+    if assigned(AContent) and (AContent.Size>0) then
+      vAdapter := TStreamAdapter.Create(AContent, soReference);
+
+    try
+      if assigned(vAdapter) then
+        FWinHttpRequest.Send(vAdapter)
+      else
+        FWinHttpRequest.Send(EmptyParam);
+
+      if FAsync then
+        WaitForResponse;
+
+      if assigned(AResponse) then
+        CopyResourceStreamToStream(AResponse);
+    except
+      on E: EOleException do
+      begin
+        case E.ErrorCode of
+          -2147012858: // WININET_E_SEC_CERT_CN_INVALID
+            raise EHTTPVerifyCertError.Create('The host name in the certificate is invalid or does not match');
+          -2147012859: // WININET_E_SEC_CERT_DATE_INVALID
+            raise EHTTPVerifyCertError.Create('The date in the certificate is invalid or has expired');
+          -2147012865, // WININET_E_CONNECTION_RESET
+          -2147012866, // WININET_E_CONNECTION_ABORTED
+          -2147012867: // WININET_E_CANNOT_CONNECT
+          begin
+            retryMode := hrmRaise;
+            if assigned(OnConnectionLost) then
+              OnConnectionLost(e, retryMode);
+            if retryMode = hrmRaise then
+              raise
+            else if retryMode = hrmRetry then
+              DoRequest(sMethod, AUrl, AContent, AResponse);
+          end
+          else
+            raise;
+        end;
+      end;
+    end;
+  finally
+    FWaitingResponse := False;
+  end;
+end;
+
 procedure THttpConnectionWinHttp.Get(AUrl: string; AResponse: TStream);
 begin
-  FWinHttpRequest := CoWinHttpRequest.Create;
-  FWinHttpRequest.Open('GET', AUrl, false);
+  DoRequest('GET', AUrl, nil, AResponse);
+end;
 
-  Configure;
+procedure THttpConnectionWinHttp.Patch(AUrl: string; AContent,
+  AResponse: TStream);
+begin
+  DoRequest('PATCH', AUrl, AContent, AResponse);
+end;
 
-  FWinHttpRequest.Send(EmptyParam);
+procedure THttpConnectionWinHttp.Post(AUrl: string; AContent, AResponse: TStream);
+begin
+  DoRequest('POST', AUrl, AContent, AResponse);
+end;
 
-  CopyResourceStreamToStream(AResponse);
+procedure THttpConnectionWinHttp.Put(AUrl: string; AContent,AResponse: TStream);
+begin
+  DoRequest('PUT', AUrl, AContent, AResponse);
+end;
+
+procedure THttpConnectionWinHttp.Delete(AUrl: string; AContent, AResponse: TStream);
+begin
+  DoRequest('DELETE', AUrl, AContent, AResponse);
 end;
 
 function THttpConnectionWinHttp.GetEnabledCompression: Boolean;
@@ -182,68 +274,19 @@ begin
   result := OnConnectionLost;
 end;
 
-function THttpConnectionWinHttp.GetOnError: THTTPErrorEvent;
-begin
-  result := OnError;
-end;
-
 function THttpConnectionWinHttp.GetResponseCode: Integer;
 begin
   Result := FWinHttpRequest.Status;
 end;
 
+function THttpConnectionWinHttp.GetVerifyCert: boolean;
+begin
+  result := FVerifyCert;
+end;
+
 function THttpConnectionWinHttp.GetResponseHeader(const Name: string): string;
 begin
   Result := FWinHttpRequest.GetResponseHeader(Name)
-end;
-
-procedure THttpConnectionWinHttp.Patch(AUrl: string; AContent,
-  AResponse: TStream);
-var
-  vAdapter: IStream;
-begin
-  FWinHttpRequest := CoWinHttpRequest.Create;
-  FWinHttpRequest.Open('PATCH', AUrl, false);
-
-  Configure;
-
-  vAdapter := TStreamAdapter.Create(AContent, soReference);
-
-  FWinHttpRequest.Send(vAdapter);
-
-  CopyResourceStreamToStream(AResponse);
-end;
-
-procedure THttpConnectionWinHttp.Post(AUrl: string; AContent, AResponse: TStream);
-var
-  vAdapter: IStream;
-begin
-  FWinHttpRequest := CoWinHttpRequest.Create;
-  FWinHttpRequest.Open('POST', AUrl, false);
-
-  Configure;
-
-  vAdapter := TStreamAdapter.Create(AContent, soReference);
-
-  FWinHttpRequest.Send(vAdapter);
-
-  CopyResourceStreamToStream(AResponse);
-end;
-
-procedure THttpConnectionWinHttp.Put(AUrl: string; AContent,AResponse: TStream);
-var
-  vAdapter: IStream;
-begin
-  FWinHttpRequest := CoWinHttpRequest.Create;
-  FWinHttpRequest.Open('PUT', AUrl, false);
-
-  Configure;
-
-  vAdapter := TStreamAdapter.Create(AContent, soReference);
-
-  FWinHttpRequest.Send(vAdapter);
-
-  CopyResourceStreamToStream(AResponse);
 end;
 
 function THttpConnectionWinHttp.SetAcceptedLanguages(AAcceptedLanguages: string): IHttpConnection;
@@ -257,6 +300,12 @@ function THttpConnectionWinHttp.SetAcceptTypes(AAcceptTypes: string): IHttpConne
 begin
   FAcceptTypes := AAcceptTypes;
 
+  Result := Self;
+end;
+
+function THttpConnectionWinHttp.SetAsync(const Value: Boolean): IHttpConnection;
+begin
+  FAsync := Value;
   Result := Self;
 end;
 
@@ -279,15 +328,36 @@ begin
   Result := Self;
 end;
 
+function THttpConnectionWinHttp.SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
+begin
+  FOnAsyncRequestProcess := Value;
+  Result := Self;
+end;
+
 procedure THttpConnectionWinHttp.SetOnConnectionLost(
   AConnectionLostEvent: THTTPConnectionLostEvent);
 begin
   OnConnectionLost := AConnectionLostEvent;
 end;
 
-procedure THttpConnectionWinHttp.SetOnError(AErrorEvent: THTTPErrorEvent);
+procedure THttpConnectionWinHttp.SetVerifyCert(const Value: boolean);
 begin
-  OnError := AErrorEvent;
+  FVerifyCert := Value;
+end;
+
+procedure THttpConnectionWinHttp.WaitForResponse;
+begin
+  while not FWinHttpRequest.WaitForResponse(1) do
+  begin
+    if Assigned(FOnAsyncRequestProcess) then
+      FOnAsyncRequestProcess(FCancelRequest);
+
+    if FCancelRequest then
+    begin
+      FWinHttpRequest.Abort;
+      Abort;
+    end
+  end;
 end;
 
 end.
