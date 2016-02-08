@@ -111,7 +111,7 @@ type
 
 implementation
 
-uses Math, SysUtils, DateUtils, StrUtils;
+uses Math, SysUtils, DateUtils, StrUtils, superdate;
 
 { TTestDbxJsonUnMarshal }
 

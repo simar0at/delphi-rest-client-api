@@ -24,11 +24,11 @@ package Delphi10_SEATTLE_RestApi;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DEFINE DEBUG}
+{$DEFINE USE_SUPER_OBJECT}
 {$ENDIF IMPLICITBUILDING}
 {$IMPLICITBUILD ON}
 
 requires
-  vcl,
   rtl,
   dsnap,
   dbrtl,
@@ -36,7 +36,8 @@ requires
   IndyProtocols,
   IndyCore,
   DbxCommonDriver,
-  soaprtl;
+  soaprtl,
+  vcl;
 
 contains
   DataSetUtils in '..\..\src\DataSetUtils.pas',

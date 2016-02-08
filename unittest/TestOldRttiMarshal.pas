@@ -100,7 +100,7 @@ type
 
 implementation
 
-uses SysUtils;
+uses SysUtils, superdate;
 
 { TTestOldRttiMarshal }
 

@@ -25,6 +25,8 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <DCC_Define>USE_SUPER_OBJECT;$(DCC_Define)</DCC_Define>
+        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
         <SanitizedProjectName>UnitTest</SanitizedProjectName>
         <DCC_DependencyCheckOutputName>UnitTest.exe</DCC_DependencyCheckOutputName>
         <Manifest_File>None</Manifest_File>

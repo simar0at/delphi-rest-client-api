@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses RestJsonUtils;
+uses RestJsonUtils, superdate;
 
 { TOldRttiUnMarshal }
 

@@ -20,7 +20,7 @@ type
 
 implementation
 
-uses Variants, JsonListAdapter, SysUtils, RestJsonUtils;
+uses Variants, JsonListAdapter, SysUtils, RestJsonUtils, superdate;
 
 { TOldRttiMarshal }
 
