@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{BEA6106E-D808-4C50-89F2-E4DEA1F6788A}</ProjectGuid>
         <MainSource>UnitTest.dpr</MainSource>
-        <ProjectVersion>17.2</ProjectVersion>
+        <ProjectVersion>18.1</ProjectVersion>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <AppType>Application</AppType>
@@ -77,7 +77,7 @@
         <DCCReference Include="..\src\OldRttiUnMarshal.pas"/>
         <DCCReference Include="..\src\JsonListAdapter.pas"/>
         <DCCReference Include="TestDbxJsonUnMarshal.pas"/>
-        <DCCReference Include="..\src\DbxJsonUnMarshal.pas"/>
+        <DCCReference Include="..\src\DBXJsonUnMarshal.pas"/>
         <DCCReference Include="TestDBXJsonUtils.pas"/>
         <DCCReference Include="TestDbxJsonMarshal.pas"/>
         <DCCReference Include="TestRestUtils.pas"/>
