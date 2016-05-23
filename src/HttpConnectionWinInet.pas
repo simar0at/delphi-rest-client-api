@@ -5,9 +5,9 @@ interface
 
 {$I DelphiRest.inc}
 
-uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, Wcrypt2;
+uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, Wcrypt2, RestException;
 
-{$IFNDEF DELPHI_XE2_UP}
+{$IFNDEF HAS_WININET_INTERNET_OPTION}
 const
   INTERNET_OPTION_FROM_CACHE_TIMEOUT          = 63;
   {$EXTERNALSYM INTERNET_OPTION_FROM_CACHE_TIMEOUT}
@@ -99,9 +99,7 @@ type
     FBasicAuthentication_Password : string;
     FCertificateContext : PCERT_CONTEXT;
     FCertificateCheckAuthority: boolean;
-
     FCertificateIgnoreRevocation: boolean;
-
     FCertificateCheckHostName: boolean;
     FCertificateCheckDate: Boolean;
     FResponseCode : Integer;
@@ -115,9 +113,8 @@ type
     procedure DoRequest(sMethod,AUrl: string; AContent: TStream; AResponse: TStream);virtual;
   public
     OnConnectionLost: THTTPConnectionLostEvent;
-    OnError: THTTPErrorEvent;
 
-    constructor Create(ARaiseExceptionOnError: Boolean = True);
+    constructor Create(ARaiseExceptionOnError: Boolean = false);
     destructor Destroy; override;
 
     function SetAcceptTypes(AAcceptTypes: string): IHttpConnection;
@@ -125,15 +122,16 @@ type
     function SetContentTypes(AContentTypes: string): IHttpConnection;
     function SetHeaders(AHeaders: TStrings): IHttpConnection;
 
+    property Headers: TStrings read FHeaders;
+
     procedure Get(AUrl: string; AResponse: TStream);
     procedure Post(AUrl: string; AContent: TStream; AResponse: TStream);
     procedure Put(AUrl: string; AContent: TStream; AResponse: TStream);
     procedure Patch(AUrl: string; AContent: TStream; AResponse: TStream);
-    procedure Delete(AUrl: string; AContent: TStream);
+    procedure Delete(AUrl: string; AContent: TStream; AResponse: TStream);
 
     function GetResponseCode: Integer;
     function GetResponseHeader(const Header: string): string;
-
 
     function GetEnabledCompression: Boolean;
     procedure SetEnabledCompression(const Value: Boolean);
@@ -141,10 +139,16 @@ type
     function GetOnConnectionLost: THTTPConnectionLostEvent;
     procedure SetOnConnectionLost(AConnectionLostEvent: THTTPConnectionLostEvent);
 
-    function GetOnError: THTTPErrorEvent;
-    procedure SetOnError(AErrorEvent: THTTPErrorEvent);
     function ConfigureTimeout(const ATimeOut: TTimeOut): IHttpConnection;
     function ConfigureProxyCredentials(AProxyCredentials: TProxyCredentials): IHttpConnection;
+
+    procedure SetVerifyCert(const Value: boolean);
+    function GetVerifyCert: boolean;
+
+    function SetAsync(const Value: Boolean): IHttpConnection;
+    procedure CancelRequest;
+
+    function SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
 
     property ResponseErrorStatusText : string read FResponseErrorStatusText write FResponseErrorStatusText;
     property CertificateContext: PCERT_CONTEXT read FCertificateContext write FCertificateContext;
@@ -198,6 +202,10 @@ begin
   inherited CreateFmt('%s (%d)', [AErrorMessage, iFErrorCode]);
 end;
 
+procedure THttpConnectionWinInet.CancelRequest;
+begin
+end;
+
 function THttpConnectionWinInet.ConfigureProxyCredentials(
   AProxyCredentials: TProxyCredentials): IHttpConnection;
 begin
@@ -213,7 +221,7 @@ begin
   Result := Self;
 end;
 
-constructor THttpConnectionWinInet.Create(ARaiseExceptionOnError: Boolean = True);
+constructor THttpConnectionWinInet.Create(ARaiseExceptionOnError: Boolean = False);
 begin
   FHeaders := TStringList.Create;
   FCertificateCheckAuthority:=True;
@@ -223,9 +231,9 @@ begin
   FRaiseExceptionOnError:=ARaiseExceptionOnError;
 end;
 
-procedure THttpConnectionWinInet.Delete(AUrl: string; AContent: TStream);
+procedure THttpConnectionWinInet.Delete(AUrl: string; AContent, AResponse: TStream);
 begin
-  DoRequest('DELETE', AUrl, AContent,nil);
+  DoRequest('DELETE', AUrl, AContent, AResponse);
 end;
 
 destructor THttpConnectionWinInet.Destroy;
@@ -249,14 +257,15 @@ begin
   result := OnConnectionLost;
 end;
 
-function THttpConnectionWinInet.GetOnError: THTTPErrorEvent;
-begin
-  result := OnError;
-end;
-
 function THttpConnectionWinInet.GetResponseCode: Integer;
 begin
   Result := FResponseCode;
+end;
+
+function THttpConnectionWinInet.GetVerifyCert: boolean;
+begin
+  result := FCertificateCheckDate and FCertificateCheckAuthority and
+    FCertificateCheckHostName;
 end;
 
 function THttpConnectionWinInet.GetResponseHeader(const Header: string): string;
@@ -294,6 +303,14 @@ begin
   Result := Self;
 end;
 
+function THttpConnectionWinInet.SetAsync(const Value: Boolean): IHttpConnection;
+begin
+  if Value then
+    raise ENotImplemented.Create('Async requests not implemented for WinInet.');
+
+  Result := Self;
+end;
+
 function THttpConnectionWinInet.SetContentTypes(AContentTypes: string): IHttpConnection;
 begin
   FContentTypes := AContentTypes;
@@ -313,15 +330,22 @@ begin
   Result := Self;
 end;
 
+function THttpConnectionWinInet.SetOnAsyncRequestProcess(const Value: TAsyncRequestProcessEvent): IHttpConnection;
+begin
+  Result := Self;
+end;
+
 procedure THttpConnectionWinInet.SetOnConnectionLost(
   AConnectionLostEvent: THTTPConnectionLostEvent);
 begin
   OnConnectionLost := AConnectionLostEvent;
 end;
 
-procedure THttpConnectionWinInet.SetOnError(AErrorEvent: THTTPErrorEvent);
+procedure THttpConnectionWinInet.SetVerifyCert(const Value: boolean);
 begin
-  OnError := AErrorEvent;
+  FCertificateCheckDate := Value;
+  FCertificateCheckAuthority := Value;
+  FCertificateCheckHostName := Value;
 end;
 
 procedure THttpConnectionWinInet.DoRequest(sMethod, AUrl: string; AContent,
@@ -340,6 +364,7 @@ var
   AData: AnsiString;
   SecurityFlags : DWord;
   FlagsLen : DWord;
+  retryMode: THTTPRetryMode;
 
    procedure SetRequestHeader(sName , sValue : string);
    var sHeader : string;
@@ -418,13 +443,14 @@ begin
                 InternetSetOption(iRequestHandle, INTERNET_OPTION_SEND_TIMEOUT, @FSendTimeout, SizeOf(FSendTimeout));
                 InternetSetOption(iRequestHandle, INTERNET_OPTION_CONNECT_TIMEOUT, @FConnectTimeout, SizeOf(FConnectTimeout));
 
-                if FProxyCredentials.Informed then
-                begin
-                  InternetSetOption(iRequestHandle, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyCredentials.UserName),
-                    Length(FProxyCredentials.UserName));
-                  InternetSetOption(iRequestHandle, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyCredentials.Password),
-                    Length(FProxyCredentials.Password));
-                end;
+                if assigned(FProxyCredentials) then
+                  if FProxyCredentials.Informed then
+                  begin
+                    InternetSetOption(iRequestHandle, INTERNET_OPTION_PROXY_USERNAME, PChar(FProxyCredentials.UserName),
+                      Length(FProxyCredentials.UserName));
+                    InternetSetOption(iRequestHandle, INTERNET_OPTION_PROXY_PASSWORD, PChar(FProxyCredentials.Password),
+                      Length(FProxyCredentials.Password));
+                  end;
 
                 if FAcceptTypes <> EmptyStr then
                   SetRequestHeader('Accept', FAcceptTypes);
@@ -487,10 +513,30 @@ begin
                       InternetQueryOption(iRequestHandle, INTERNET_OPTION_SECURITY_FLAGS, Pointer(@iFlags), FlagsLen);
                       iFlags := iFlags or SecurityFlags;
                       InternetSetOption(iRequestHandle, INTERNET_OPTION_SECURITY_FLAGS, Pointer(@iFlags), FlagsLen);
-
                     end
                     else
-                    raise EInetException.Create;
+                    begin
+                      case GetLastError of
+                        ERROR_INTERNET_SEC_CERT_CN_INVALID:
+                          raise EHTTPVerifyCertError.Create('SSL certificate common name (host name field) is incorrect.');
+                        ERROR_INTERNET_SEC_CERT_DATE_INVALID:
+                          raise EHTTPVerifyCertError.Create('SSL certificate date that was received from the server is bad. The certificate is expired.');
+                        ERROR_INTERNET_CANNOT_CONNECT,
+                        ERROR_INTERNET_CONNECTION_ABORTED,
+                        ERROR_INTERNET_CONNECTION_RESET:
+                        begin
+                          retryMode := hrmRaise;
+                          if assigned(OnConnectionLost) then
+                            OnConnectionLost(nil, retryMode);
+                          if retryMode = hrmRaise then
+                            raise EInetException.Create(inttostr(GetLastError))
+                          else if retryMode = hrmRetry then
+                            DoRequest(sMethod, AUrl, AContent, AResponse);
+                        end;
+                        else
+                          raise EInetException.Create(inttostr(GetLastError));
+                      end;
+                    end;
                   end;
                 until (iRetry=0) or (iRetry>1);
               end else raise EInetException.Create;
