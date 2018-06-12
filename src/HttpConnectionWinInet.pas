@@ -109,6 +109,7 @@ type
     FSendTimeout: Integer;
     FReceiveTimeout: Integer;
     FProxyCredentials: TProxyCredentials;
+    FResponseHeader: TStringList;
   protected
     procedure DoRequest(sMethod,AUrl: string; AContent: TStream; AResponse: TStream);virtual;
   public
@@ -177,10 +178,32 @@ implementation
 
 uses WinInet,Windows;
 
+const
+  MaxHeadSize          = 16384; { see http://stackoverflow.com/questions/686217/maximum-on-http-header-values }
+
 { THttpConnectionWinInet }
 
 const
   BUFSIZE = 4096;
+
+function GetWinInetError(ErrorCode:Cardinal): string;
+const
+   winetdll = 'wininet.dll';
+var
+  Len: Integer;
+  Buffer: PChar;
+begin
+  Len := FormatMessage(
+  FORMAT_MESSAGE_FROM_HMODULE or FORMAT_MESSAGE_FROM_SYSTEM or
+  FORMAT_MESSAGE_ALLOCATE_BUFFER or FORMAT_MESSAGE_IGNORE_INSERTS or  FORMAT_MESSAGE_ARGUMENT_ARRAY,
+  Pointer(GetModuleHandle(winetdll)), ErrorCode, 0, @Buffer, SizeOf(Buffer), nil);
+  try
+    while (Len > 0) and {$IFDEF UNICODE}(CharInSet(Buffer[Len - 1], [#0..#32, '.'])) {$ELSE}(Buffer[Len - 1] in [#0..#32, '.']) {$ENDIF} do Dec(Len);
+    SetString(Result, Buffer, Len);
+  finally
+    LocalFree(HLOCAL(Buffer));
+  end;
+end;
 
 constructor EInetException.Create;
 var
@@ -191,7 +214,7 @@ begin
   case iFErrorCode of
     ERROR_INTERNET_TIMEOUT: vErrorMessage := 'The request has timed out.';
   else
-    vErrorMessage := SysErrorMessage(iFErrorCode);
+    vErrorMessage := GetWinInetError(iFErrorCode);
   end;
   Create(vErrorMessage, iFErrorCode);
 end;
@@ -229,6 +252,8 @@ begin
   FCertificateCheckHostName:=True;
   FCertificateCheckDate:=True;
   FRaiseExceptionOnError:=ARaiseExceptionOnError;
+  FResponseHeader := TStringList.Create;
+  FResponseHeader.NameValueSeparator := ':';
 end;
 
 procedure THttpConnectionWinInet.Delete(AUrl: string; AContent, AResponse: TStream);
@@ -239,12 +264,13 @@ end;
 destructor THttpConnectionWinInet.Destroy;
 begin
   FHeaders.Free;
+  FResponseHeader.Free;
   inherited;
 end;
 
 procedure THttpConnectionWinInet.Get(AUrl: string; AResponse: TStream);
 begin
-  DoRequest('GET', AUrl, nil,AResponse);
+  DoRequest('GET', AUrl, nil, AResponse);
 end;
 
 function THttpConnectionWinInet.GetEnabledCompression: Boolean;
@@ -265,12 +291,13 @@ end;
 function THttpConnectionWinInet.GetVerifyCert: boolean;
 begin
   result := FCertificateCheckDate and FCertificateCheckAuthority and
-    FCertificateCheckHostName;
+    FCertificateCheckHostName and FCertificateIgnoreRevocation;
 end;
 
 function THttpConnectionWinInet.GetResponseHeader(const Header: string): string;
 begin
-  raise ENotSupportedException.Create('');
+  Assert(FResponseHeader <> nil);
+  Result := FResponseHeader.Values[Header];
 end;
 
 procedure THttpConnectionWinInet.Patch(AUrl: string; AContent,
@@ -346,6 +373,7 @@ begin
   FCertificateCheckDate := Value;
   FCertificateCheckAuthority := Value;
   FCertificateCheckHostName := Value;
+  FCertificateIgnoreRevocation := Value;
 end;
 
 procedure THttpConnectionWinInet.DoRequest(sMethod, AUrl: string; AContent,
@@ -366,6 +394,9 @@ var
   FlagsLen : DWord;
   retryMode: THTTPRetryMode;
 
+  iSize, iReserved: DWord;
+  sRespHeader: string;
+
    procedure SetRequestHeader(sName , sValue : string);
    var sHeader : string;
    begin
@@ -375,6 +406,7 @@ var
 
 begin
   FResponseCode:=0;
+  FResponseHeader.Clear;
   SecurityFlags:=0;
   FillChar(pURIC, SizeOf(URL_COMPONENTS), 0);
   iFlags := INTERNET_FLAG_RELOAD or INTERNET_FLAG_RAW_DATA;
@@ -502,6 +534,12 @@ begin
                         while InternetReadFile(iRequestHandle, @arBuf, BUFSIZE, iBytesRead) and (iBytesRead > 0) do begin
                           AResponse.Write(arBuf,iBytesRead);
                         end;
+                        iReserved := 0;
+                        iSize := MaxHeadSize;
+                        SetLength(sRespHeader, iSize);
+                        HttpQueryInfo(iRequestHandle, HTTP_QUERY_RAW_HEADERS_CRLF, PChar(sRespHeader), iSize, iReserved);
+                        SetLength(sRespHeader, iSize div SizeOf(Char));
+                        FResponseHeader.Text := sRespHeader;
                         iRetry:=0;
                       end;
                   end else
@@ -521,9 +559,14 @@ begin
                           raise EHTTPVerifyCertError.Create('SSL certificate common name (host name field) is incorrect.');
                         ERROR_INTERNET_SEC_CERT_DATE_INVALID:
                           raise EHTTPVerifyCertError.Create('SSL certificate date that was received from the server is bad. The certificate is expired.');
+                        {$IFNDEF DELPHI_7}
+                        ERROR_INTERNET_SEC_CERT_REV_FAILED:
+                          raise EHTTPVerifyCertError.Create('Unable to validate the revocation of the SSL certificate because the revocation server is unavailable');
+                        {$ENDIF}
                         ERROR_INTERNET_CANNOT_CONNECT,
                         ERROR_INTERNET_CONNECTION_ABORTED,
-                        ERROR_INTERNET_CONNECTION_RESET:
+                        ERROR_INTERNET_CONNECTION_RESET,
+                        ERROR_INTERNET_TIMEOUT:
                         begin
                           retryMode := hrmRaise;
                           if assigned(OnConnectionLost) then
@@ -534,7 +577,7 @@ begin
                             DoRequest(sMethod, AUrl, AContent, AResponse);
                         end;
                         else
-                          raise EInetException.Create(inttostr(GetLastError));
+                          raise EInetException.Create;
                       end;
                     end;
                   end;
