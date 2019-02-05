@@ -80,7 +80,7 @@
   {$MODE OBJFPC}{$H+}
 {$ENDIF}
 
-{$I DelphiRest.inc}
+{$I ..\..\src\DelphiRest.inc}
 
 {$DEFINE SUPER_METHOD}
 {$DEFINE WINDOWSNT_COMPATIBILITY}
