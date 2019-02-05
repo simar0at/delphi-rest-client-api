@@ -2,7 +2,7 @@ unit TestOldRttiUnmarshal;
 
 interface
 
-uses TestFramework, Contnrs, Classes, OldRttiUnMarshal, DbxJsonUtils;
+uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF} Contnrs, Classes, OldRttiUnMarshal, DbxJsonUtils;
 
 type
   {$M+}
@@ -152,7 +152,11 @@ end;
 
 procedure TTestOldRttiUnmarshal.invalidJsonSyntax;
 begin
+  {$IFNDEF FPC}
   ExpectedException := EJsonInvalidSyntax;
+  {$ELSE}
+  ExpectException(EJsonInvalidSyntax);
+  {$ENDIF}
 
   FromJson('{"a : null}');
 end;
@@ -208,7 +212,7 @@ begin
   FObject := FromJson('{"valueCurrency" : 1.23}');
 
   CheckNotNull(FObject);
-  CheckEquals(RoundTo(1.23, -2), RoundTo(FObject.valueCurrency, -2));
+  CheckEquals(RoundTo(1.23, -2), RoundTo({$IFNDEF FPC}FObject.valueCurrency{$ELSE}Extended(FObject.valueCurrency){$ENDIF}, -2));
 end;
 
 procedure TTestOldRttiUnmarshal.valueDateTime;
@@ -452,7 +456,7 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestOldRttiUnmarshal.Suite);
+  RegisterTest(TTestOldRttiUnmarshal{$IFNDEF FPC}.Suite{$ENDIF});
   RegisterClass(TAllTypes);
 
 end.
