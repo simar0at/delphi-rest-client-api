@@ -5,7 +5,8 @@ interface
 
 {$I DelphiRest.inc}
 
-uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, Wcrypt2, RestException;
+uses HttpConnection, Classes, SysUtils, Variants, ActiveX, Wcrypt2, RestException
+  {$IFNDEF FPC}, AxCtrls{$ENDIF};
 
 {$IFNDEF HAS_WININET_INTERNET_OPTION}
 const
@@ -111,7 +112,7 @@ type
     FProxyCredentials: TProxyCredentials;
     FResponseHeader: TStringList;
   protected
-    procedure DoRequest(sMethod,AUrl: string; AContent: TStream; AResponse: TStream);virtual;
+    procedure DoRequest(sMethod,AUrl: UnicodeString; AContent: TStream; AResponse: TStream);virtual;
   public
     OnConnectionLost: THTTPConnectionLostEvent;
 
@@ -376,7 +377,7 @@ begin
   FCertificateIgnoreRevocation := Value;
 end;
 
-procedure THttpConnectionWinInet.DoRequest(sMethod, AUrl: string; AContent,
+procedure THttpConnectionWinInet.DoRequest(sMethod, AUrl: UnicodeString; AContent,
   AResponse: TStream);
 var
   iNetworkHandle,
@@ -386,7 +387,7 @@ var
   iBytesRead, iFlags: DWord;
   iStatus, iStatusIndex, iStatusLength: DWORD;
   sStatusText: String;
-  pURIC: URL_COMPONENTS;
+  pURIC: URL_COMPONENTSW;
   iRetry : Integer;
   i: Integer;
   AData: AnsiString;
@@ -398,10 +399,10 @@ var
   sRespHeader: string;
 
    procedure SetRequestHeader(sName , sValue : string);
-   var sHeader : string;
+   var sHeader : UnicodeString;
    begin
      sHeader:=sName+': '+sValue;
-     HttpAddRequestHeaders(iRequestHandle, PChar(sHeader), Length(sHeader), HTTP_ADDREQ_FLAG_ADD);
+     HttpAddRequestHeadersW(iRequestHandle, PWideChar(sHeader), Length(sHeader), HTTP_ADDREQ_FLAG_ADD);
    end;
 
 begin
@@ -431,13 +432,13 @@ begin
     lpszExtraInfo:= nil;                              // pointer to extra information (e.g. ?foo or #foo)
     dwExtraInfoLength:= INTERNET_MAX_PATH_LENGTH;     // length of extra information
   end;
-  if InternetCrackUrl(PChar(AUrl), Length(AUrl), 0, pURIC) then begin
-    iNetworkHandle := InternetOpen(PChar('Delphi REST client'),
+  if InternetCrackUrlW(PWideChar(AUrl), Length(AUrl), 0, pURIC) then begin
+    iNetworkHandle := InternetOpenW(PWideChar('Delphi REST client'),
        INTERNET_OPEN_TYPE_PRECONFIG_WITH_NO_AUTOPROXY, nil, nil, 0); //INTERNET_FLAG_RAW_DATA
     try
       if Assigned(iNetworkHandle) then begin
-        iConnectionHandle := InternetConnect(iNetworkHandle,
-          PChar(Copy(pURIC.lpszHostName, 1, pURIC.dwHostNameLength)),
+        iConnectionHandle := InternetConnectW(iNetworkHandle,
+          PWideChar(Copy(pURIC.lpszHostName, 1, pURIC.dwHostNameLength)),
           pURIC.nPort, nil, nil, INTERNET_SERVICE_HTTP, 0, 0);
         try
           if Assigned(iConnectionHandle) then begin
@@ -458,8 +459,8 @@ begin
               iFlags:=iFlags or SecurityFlags;
             end;
 
-            iRequestHandle := HTTPOpenRequest(iConnectionHandle, PChar(sMethod), PChar(pURIC.lpszUrlPath),
-               PChar('HTTP/1.1'), nil, nil, iFlags, 0);
+            iRequestHandle := HTTPOpenRequestW(iConnectionHandle, PWideChar(sMethod), PWideChar(pURIC.lpszUrlPath),
+               PWideChar('HTTP/1.1'), nil, nil, iFlags, 0);
             try
 
               if Assigned(iRequestHandle) then

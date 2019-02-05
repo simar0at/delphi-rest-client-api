@@ -2,7 +2,7 @@ unit JsonToDataSetConverter;
 
 interface
 
-uses DB, DBClient, SuperObject;
+uses DB, {$IFNDEF FPC}DBClient, {$ENDIF}SuperObject;
 
 type
   TJsonToDataSetConverter = class
@@ -18,15 +18,21 @@ type
     class procedure UnMarshalToDataSet(ADataSet: TDataSet; AJson: string);overload;
     class procedure UnMarshalToDataSet(ADataSet: TDataSet; AObject: ISuperObject);overload;
 
-    class function CreateDataSetMetadata(AJson: string): TClientDataSet; overload;
-    class function CreateDataSetMetadata(AObject: ISuperObject): TClientDataSet; overload;
+    class function CreateDataSetMetadata(AJson: string): TDataSet; overload;
+    class function CreateDataSetMetadata(AObject: ISuperObject): TDataSet; overload;
   end;
 
 implementation
 
 { TJsonToDataSetConverter }
 
-uses DataSetUtils;
+uses DataSetUtils{$IFDEF FPC}, BufDataSet{$ENDIF};
+
+{$IFDEF FPC}
+type
+  TClientDataSet = class(TBufDataSet)
+  end;
+{$ENDIF}
 
 class procedure TJsonToDataSetConverter.AppendRecord(ADataSet: TDataSet;AObject: ISuperObject);
 var
@@ -54,7 +60,7 @@ begin
   ADataSet.Post;
 end;
 
-class function TJsonToDataSetConverter.CreateDataSetMetadata(AJson: string): TClientDataSet;
+class function TJsonToDataSetConverter.CreateDataSetMetadata(AJson: string): TDataSet;
 var
   AObject: ISuperObject;
 begin
@@ -63,7 +69,7 @@ begin
   Result := CreateDataSetMetadata(AObject);
 end;
 
-class function TJsonToDataSetConverter.CreateDataSetMetadata(AObject: ISuperObject): TClientDataSet;
+class function TJsonToDataSetConverter.CreateDataSetMetadata(AObject: ISuperObject): TDataSet;
 var
   vArray: TSuperArray;
 begin
@@ -80,7 +86,7 @@ begin
     ExtractFields(Result, AObject);
   end;
 
-  Result.CreateDataSet;
+  TClientDataSet(Result).CreateDataSet;
 end;
 
 class procedure TJsonToDataSetConverter.ExtractFields(ADataSet: TDataSet;AObject: ISuperObject);

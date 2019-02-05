@@ -2,8 +2,9 @@ unit HttpConnectionWinHttp;
 
 interface
 
-uses HttpConnection, Classes, SysUtils, Variants, ActiveX, AxCtrls, WinHttp_TLB,
-  ComObj;
+uses HttpConnection, Classes, SysUtils, Variants, ActiveX, WinHttp_TLB,
+  ComObj
+  {$IFNDEF FPC}, AxCtrls{$ENDIF};
 
 type
   THttpConnectionWinHttp = class(TInterfacedObject, IHttpConnection)
