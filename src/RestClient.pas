@@ -107,7 +107,7 @@ type
     OnAfterRequest: TRestOnRequestEvent;
     OnResponse: TRestOnResponseEvent;
 
-    constructor Create(Owner: TComponent); override;
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property ResponseCode: Integer read GetResponseCode;
@@ -283,7 +283,7 @@ uses StrUtils, Math,
 
 { TRestClient }
 
-constructor TRestClient.Create(Owner: TComponent);
+constructor TRestClient.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF SUPPORTS_GENERICS}
@@ -337,7 +337,7 @@ function TRestClient.DoRequest(Method: TRequestMethod; ResourceRequest: TResourc
 const
   AuthorizationHeader = 'Authorization';
 var
-  vResponse: TStringStream;
+  vResponse: TBytesStream;
   vUrl: String;
   vResponseString: string;
   vRetryMode: THTTPRetryMode;
@@ -347,7 +347,7 @@ var
 begin
   CheckConnection;
 
-  vResponse := TStringStream.Create('');
+  vResponse := TBytesStream.Create();
   try
     vHeaders := ResourceRequest.GetHeaders;
 
@@ -388,17 +388,16 @@ begin
     else
     begin
       {$IFDEF UNICODE}
-        vResponseString := vResponse.DataString;
-
+        vResponseString := PAnsiChar(vResponse.Bytes);
         {$IFDEF NEXTGEN}
           Result := TEncoding.UTF8.GetString(TEncoding.UTF8.GetBytes(vResponseString.ToCharArray), 0, vResponseString.Length);
         {$ELSE}
           Result := UTF8ToUnicodeString(RawByteString(vResponseString));
         {$ENDIF}
       {$ELSE}
-        vResponseString := vResponse.DataString;
+        vResponseString := PAnsiChar(vResponse.Bytes);
 
-        Result := UTF8Decode(vResponse.DataString);
+        Result := UTF8Decode(PAnsiChar(vResponse.Bytes));
       {$ENDIF}
       if Assigned(OnResponse) then
         OnResponse(Self, FHttpConnection.ResponseCode, Result);
