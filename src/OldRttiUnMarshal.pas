@@ -48,6 +48,7 @@ var
   vInt64Value: Int64;
   vObjProp: TObject;
   vObjClass: TClass;
+  vPropType: {$IFNDEF FPC}PTypeInfo{$ELSE}TTypeInfo{$ENDIF};
 begin
   Result := nil;
 
@@ -68,12 +69,14 @@ begin
                       vPropName := String(vPropInfo^.Name);
 
                       value := Null;
+                      vPropType := vPropInfo^.PropType^;
                       try
-                        case vPropInfo^.PropType^.Kind of
+                        case vPropType.Kind of
                           tkMethod: ;
                           tkSet,
                           tkInteger,
-                          tkEnumeration: begin
+                          tkEnumeration
+                          {$IFDEF FPC}, tkBool{$ENDIF}: begin
                                            value := FromInt(vPropInfo, AJSONValue.O[vPropName]);
                                            if not VarIsNull(value) then
                                            begin
@@ -98,11 +101,11 @@ begin
                           {$IFDEF UNICODE}
                           tkUString,
                           {$ENDIF}
-                          tkWString: value := FromString(vPropInfo, AJSONValue.O[vPropName]);
+                          tkWString{$IFDEF FPC}, tkAString{$ENDIF}: value := FromString(vPropInfo, AJSONValue.O[vPropName]);
                           tkClass: begin
                                       value := Null;
 
-                                      vObjClass := GetObjectPropClass(Result, vPropInfo);
+                                      vObjClass := GetObjectPropClass(Result, {$IFNDEF FPC}vPropInfo{$ELSE}vPropName{$ENDIF});
 
                                       if vObjClass.InheritsFrom(TList) then
                                       begin
@@ -154,13 +157,13 @@ begin
   case ObjectGetType(AJSONValue) of
     stInt, stDouble, stCurrency:
       begin
-        if APropInfo^.PropType^ = System.TypeInfo(TDateTime) then
+        if Pointer(APropInfo^.PropType) = System.TypeInfo(TDateTime) then
         begin
           Result := JavaToDelphiDateTime(AJSONValue.AsInteger);
         end
         else
         begin
-          case GetTypeData(APropInfo^.PropType^).FloatType of
+          case GetTypeData(APropInfo^.PropType{$IFNDEF FPC}^{$ENDIF})^.FloatType of
             ftSingle: Result := AJSONValue.AsDouble;
             ftDouble: Result := AJSONValue.AsDouble;
             ftExtended: Result := AJSONValue.AsDouble;
@@ -300,7 +303,7 @@ begin
   begin
     if AClassType.InheritsFrom(TList) and (AJSONValue.AsArray.Length > 0) then
     begin
-      Result := TList(AClassType.Create);
+      Result := {$IFNDEF FPC}TList(AClassType.Create){$ELSE}TList.Create{$ENDIF};
       try
         for i := 0 to AJSONValue.AsArray.Length-1 do
         begin

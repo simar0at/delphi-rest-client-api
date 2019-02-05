@@ -39,6 +39,7 @@ var
   value: ISuperObject;
   vObjProp: TObject;
   vAdapter: IJsonListAdapter;
+  vPropType: {$IFNDEF FPC}PTypeInfo{$ELSE}TTypeInfo{$ENDIF};
 begin
   if AObject = nil then
   begin
@@ -77,9 +78,11 @@ begin
 
         value := nil;
 
-        case vPropInfo^.PropType^.Kind of
+        vPropType := vPropInfo^.PropType^;
+
+        case vPropType.Kind of
           tkMethod: ;
-          tkSet, tkInteger, tkEnumeration: value := ToInteger(AObject, vPropInfo);
+          tkSet, tkInteger, tkEnumeration{$IFDEF FPC}, tkBool{$ENDIF}: value := ToInteger(AObject, vPropInfo);
           tkInt64: value := ToInt64(AObject, vPropInfo);
           tkFloat: value := ToFloat(AObject, vPropInfo);
           tkChar, tkWChar: value := ToChar(AObject, vPropInfo); 
@@ -87,7 +90,7 @@ begin
           {$IFDEF UNICODE}
           tkUString,
           {$ENDIF}
-          tkWString: value := ToJsonString(AObject, vPropInfo);
+          tkWString{$IFDEF FPC}, tkAString{$ENDIF}: value := ToJsonString(AObject, vPropInfo);
           tkClass: begin
                       value := nil;
                       vObjProp := GetObjectProp(AObject, vPropInfo);
@@ -114,7 +117,7 @@ end;
 
 function TOldRttiMarshal.ToFloat(AObject: TObject; APropInfo: PPropInfo): ISuperObject;
 begin
-  if APropInfo^.PropType^ = System.TypeInfo(TDateTime) then
+  if Pointer(APropInfo^.PropType) = System.TypeInfo(TDateTime) then
     Result := TSuperObject.Create(DelphiToJavaDateTime(GetFloatProp(AObject, APropInfo)))
   else
     Result := TSuperObject.Create(GetFloatProp(AObject, APropInfo));
@@ -131,7 +134,7 @@ var
 begin
   vIntValue := GetOrdProp(AObject, APropInfo);
 
-  if APropInfo^.PropType^ = TypeInfo(Boolean) then
+  if Pointer(APropInfo^.PropType) = System.TypeInfo(Boolean) then
     Result := TSuperObject.Create(Boolean(vIntValue))
   else
     Result := TSuperObject.Create(vIntValue);
