@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses RestJsonUtils;
+uses RestJsonUtils{$IFDEF FPC}, Contnrs{$ENDIF};
 
 { TOldRttiUnMarshal }
 
@@ -303,7 +303,12 @@ begin
   begin
     if AClassType.InheritsFrom(TList) and (AJSONValue.AsArray.Length > 0) then
     begin
-      Result := {$IFNDEF FPC}TList(AClassType.Create){$ELSE}TList.Create{$ENDIF};
+      {$IFNDEF FPC}
+      Result := TList(AClassType.Create)
+      {$ELSE}
+      if AClassType.InheritsFrom(TObjectList) then Result := TObjectList.Create
+      else Result := TList.Create
+      {$ENDIF};
       try
         for i := 0 to AJSONValue.AsArray.Length-1 do
         begin

@@ -1,0 +1,28 @@
+program fpcConsUnitTest;
+
+{$mode objfpc}{$H+}
+
+uses
+  {$IFDEF UNIX}cthreads,{$ENDIF}
+  Classes, consoletestrunner, BaseTestRest, TestHelloWorld, TestOldRttiMarshal, TestOldRttiUnmarshal,
+  TestRestClient, TestPeople, TestHeader, TestRequestSerialization;
+
+type
+
+  { TMyTestRunner }
+
+  TMyTestRunner = class(TTestRunner)
+  protected
+  // override the protected methods of TTestRunner to customize its behavior
+  end;
+
+var
+  Application: TMyTestRunner;
+
+begin
+  Application := TMyTestRunner.Create(nil);
+  Application.Initialize;
+  Application.Title:='Delphi-Rest-Client using FPC Testsuite';
+  Application.Run;
+  Application.Free;
+end.

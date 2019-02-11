@@ -339,7 +339,7 @@ const
 var
   vResponse: TBytesStream;
   vUrl: String;
-  vResponseString: string;
+  vResponseString: RawByteString;
   vRetryMode: THTTPRetryMode;
   vHeaders: TStrings;
   vEncodedCredentials: string;
@@ -397,7 +397,7 @@ begin
       {$ELSE}
         vResponseString := PAnsiChar(vResponse.Bytes);
 
-        Result := UTF8Decode(PAnsiChar(vResponse.Bytes));
+        Result := TEncoding.UTF8.GetString(vResponse.Bytes, 0, Length(vResponseString));
       {$ENDIF}
       if Assigned(OnResponse) then
         OnResponse(Self, FHttpConnection.ResponseCode, Result);

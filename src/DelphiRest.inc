@@ -1,8 +1,10 @@
 (* Full	Delphi Version Compiler Directives list could be found here: https://gist.github.com/2485849 *)
 
 {$DEFINE USE_INDY}
+{$IFDEF WINDOWS}
 {$DEFINE USE_WIN_HTTP}
 {$DEFINE USE_WIN_INET}
+{$ENDIF}
 {$DEFINE USE_SUPER_OBJECT}
 
 (*

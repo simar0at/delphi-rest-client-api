@@ -212,7 +212,11 @@ begin
   FObject := FromJson('{"valueCurrency" : 1.23}');
 
   CheckNotNull(FObject);
-  CheckEquals(RoundTo(1.23, -2), RoundTo({$IFNDEF FPC}FObject.valueCurrency{$ELSE}Extended(FObject.valueCurrency){$ENDIF}, -2));
+  {$IFNDEF FPC}
+  CheckEquals(RoundTo(1.23, -2), RoundTo(FObject.valueCurrency, -2));
+  {$ELSE}
+  CheckEquals('1.23', CurrToStr(FObject.valueCurrency))
+  {$ENDIF}
 end;
 
 procedure TTestOldRttiUnmarshal.valueDateTime;

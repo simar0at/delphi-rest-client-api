@@ -12,8 +12,8 @@ implementation
 
 uses
   SysUtils,
-  Registry,
-  Windows;
+  Registry
+  {$IFDEF WINDOWS}, Windows {$ENDIF};
 
 const
   INTERNET_SETTINGS = 'Software\Microsoft\Windows\CurrentVersion\Internet Settings';

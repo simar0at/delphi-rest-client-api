@@ -72,7 +72,8 @@ type
 implementation
 
 uses
-  ProxyUtils;
+  ProxyUtils
+  {$IFDEF UNIX}, IdSSLOpenSSLHeaders{$ENDIF};
 
 { THttpConnectionIndy }
 
@@ -105,6 +106,9 @@ var
   ssl: TIdSSLIOHandlerSocketOpenSSL;
   ProxyServerIP: string;
 begin
+  {$IFDEF UNIX}
+  IdOpenSSLSetLoadSymLinksFirst(False);
+  {$ENDIF}
   FIdHttp := TIdHTTP.Create(nil);
   ssl := TIdSSLIOHandlerSocketOpenSSL.Create(FIdHttp);
   ssl.OnVerifyPeer := IdSSLIOHandlerSocketOpenSSL1VerifyPeer;

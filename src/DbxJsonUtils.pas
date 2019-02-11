@@ -24,6 +24,7 @@ type
 implementation
 
 {$IFNDEF MACOS}
+{$IFNDEF LINUX}
 uses Windows;
 
 {$IFDEF WINDOWSNT_COMPATIBILITY}
@@ -252,6 +253,7 @@ function SystemTimeToTzSpecificLocalTime(
   lpTimeZoneInformation: PTimeZoneInformation;
   lpUniversalTime, lpLocalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll';
 {$ENDIF WINDOWSNT_COMPATIBILITY}
+{$ENDIF LINUX}
 {$ENDIF MACOS}
 
 {$IFDEF SUPPORTS_GENERICS}

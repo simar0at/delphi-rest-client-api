@@ -86,8 +86,8 @@
       <Filename Value="fpcUnitTest"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="$(ProjDir);$(ProjDir)\..;$(ProjOutDir);$(ProjDir)\..\src"/>
-      <OtherUnitFiles Value="$(ProjDir)\..\src;$(ProjDir)\..\lib;$(ProjDir)\..\lib\superobject"/>
+      <IncludeFiles Value="$(ProjPath);$(ProjPath)\..;$(ProjOutDir);$(ProjPath)\..\src"/>
+      <OtherUnitFiles Value="$(ProjPath)\..\src;$(ProjPath)\..\lib;$(ProjPath)\..\lib\superobject"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
     </SearchPaths>
     <Parsing>
@@ -96,6 +96,10 @@
       </SyntaxOptions>
     </Parsing>
     <Linking>
+      <Debugging>
+        <UseValgrind Value="True"/>
+        <UseExternalDbgSyms Value="True"/>
+      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>
