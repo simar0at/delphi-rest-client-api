@@ -41,7 +41,8 @@ unit WinHttp_TLB;
 {$VARPROPSETTER ON}
 interface
 
-uses Windows, ActiveX, Classes, Graphics, OleServer, StdVCL, Variants;
+uses Windows, ActiveX, Classes, Graphics, OleServer, Variants
+{$IFNDEF FPC}, StdVCL{$ENDIF};
   
 
 // *********************************************************************//
@@ -175,7 +176,7 @@ type
     property ResponseText: WideString read Get_ResponseText;
     property ResponseBody: OleVariant read Get_ResponseBody;
     property ResponseStream: OleVariant read Get_ResponseStream;
-    property Option[Option: WinHttpRequestOption]: OleVariant read Get_Option write Set_Option;
+    property Option[AOption: WinHttpRequestOption]: OleVariant read Get_Option write Set_Option;
   end;
 
 // *********************************************************************//
@@ -199,7 +200,7 @@ type
     property ResponseText: WideString readonly dispid 9;
     property ResponseBody: OleVariant readonly dispid 10;
     property ResponseStream: OleVariant readonly dispid 11;
-    property Option[Option: WinHttpRequestOption]: OleVariant dispid 6;
+    property Option[AOption: WinHttpRequestOption]: OleVariant dispid 6;
     function WaitForResponse(Timeout: OleVariant): WordBool; dispid 15;
     procedure Abort; dispid 12;
     procedure SetTimeouts(ResolveTimeout: Integer; ConnectTimeout: Integer; SendTimeout: Integer; 
@@ -306,7 +307,7 @@ type
     property ResponseText: WideString read Get_ResponseText;
     property ResponseBody: OleVariant read Get_ResponseBody;
     property ResponseStream: OleVariant read Get_ResponseStream;
-    property Option[Option: WinHttpRequestOption]: OleVariant read Get_Option write Set_Option;
+    property Option[AOption: WinHttpRequestOption]: OleVariant read Get_Option write Set_Option;
   published
 {$IFDEF LIVE_SERVER_AT_DESIGN_TIME}
     property Server: TWinHttpRequestProperties read GetServerProperties;

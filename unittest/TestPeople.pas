@@ -1,8 +1,8 @@
-unit TestPeople;
+﻿unit TestPeople;
 
 interface
 
-uses BaseTestRest, Classes, DBClient, Db;
+uses BaseTestRest, Classes, {$IFNDEF FPC}DBClient, {$ENDIF}Db;
 
 {$I DelphiRest.inc}
 
@@ -28,15 +28,17 @@ type
     procedure PersonNotFound;
 
     {$IFDEF USE_SUPER_OBJECT}
+    {$IFNDEF FPC}
     procedure GetAsDataSet;
     procedure GetAsDynamicDataSet;
+    {$ENDIF}
     {$ENDIF}
   end;
 
 implementation
 
 uses RestUtils, StrUtils, SysUtils, Math, DataSetUtils, Person,
-  TestFramework, HttpConnection;
+  {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF} HttpConnection;
 
 { TTestPeople }
 
@@ -113,10 +115,10 @@ begin
 
     if (Id > 0) then
     begin
-      CheckEqualsString(Format('"id":%d',[Id]), vList[0], 'Id invalid');
+      CheckEquals(Format('"id":%d',[Id]), vList[0], 'Id invalid');
     end;
-    CheckEqualsString(Format('"name":"%s"',[Name]), vList[1], 'Name invalid');
-    CheckEqualsString(Format('"email":"%s"',[EMail]), vList[2], 'E-Mail invalid');
+    CheckEquals(Format('"name":"%s"',[Name]), vList[1], 'Name invalid');
+    CheckEquals(Format('"email":"%s"',[EMail]), vList[2], 'E-Mail invalid');
   finally
     vList.Free;
   end;
@@ -130,6 +132,7 @@ begin
 end;
 
 {$IFDEF USE_SUPER_OBJECT}
+{$IFNDEF FPC}
 procedure TTestPeople.GetAsDataSet;
 const
   ExpectedPeoples = '[{"id":1,"name":"John Doe","email":"john@hotmail.com"},'+
@@ -178,12 +181,13 @@ begin
   end;
 end;
 {$ENDIF}
+{$ENDIF}
 
 procedure TTestPeople.GetPerson;
 begin
   CheckPerson('John Doe', 'john@hotmail.com', 1);
   CheckPerson('Mike Myers', 'myers@hotmail.com', 2);
-  CheckPerson('Jos� Climber', 'climber@hotmail.com', 3);
+  CheckPerson('José Climber', 'climber@hotmail.com', 3);
   CheckPerson('Mikaela Romanova', 'romanova@hotmail.com', 4);
 end;
 
@@ -210,9 +214,12 @@ end;
 
 procedure TTestPeople.PersonNotFound;
 begin
-  StartExpectingException(EHTTPError);
+  {$IFNDEF FPC}StartExpectingException(EHTTPError);
+  {$ELSE}
+  ExpectException(EHTTPError);
+  {$ENDIF}
   RestClient.Resource(CONTEXT_PATH + 'person/999').Accept(RestUtils.MediaType_Json).GET();
-  StopExpectingException('Person not found!');
+  {$IFNDEF FPC}StopExpectingException('Person not found!');{$ENDIF}
 end;
 
 procedure TTestPeople.RemovePersonById;

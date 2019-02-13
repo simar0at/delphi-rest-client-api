@@ -5,6 +5,20 @@ interface
 uses DB, SysUtils;
 
 type
+  {$IFDEF FPC}
+
+  { TDataSetField }
+
+  TDataSetField = class(TField)
+    private
+      FNestedDataSet: TDataSet;
+    public
+      constructor Create(ANestedDataSet: TDataSet); overload;
+    published
+      property NestedDataSet: TDataSet read FNestedDataSet write FNestedDataSet;
+  end;
+  {$ENDIF}
+
   TDataSetUtils = class
   public
     class function CreateField(DataSet: TDataSet; FieldType: TFieldType; const FieldName: string = ''; ASize: Integer=0; ADisplayWidth: Integer = 30): TField;
@@ -12,6 +26,16 @@ type
   end;
 
 implementation
+
+{$IFDEF FPC}
+{ TDataSetField }
+
+constructor TDataSetField.Create(ANestedDataSet: TDataSet);
+begin
+  FNestedDataSet := ANestedDataSet;
+end;
+
+{$ENDIF}
 
 { TDataSetUtils }
 
@@ -22,8 +46,17 @@ end;
 
 class function TDataSetUtils.CreateField(DataSet: TDataSet;
   FieldType: TFieldType; const FieldName: string; ASize: Integer; ADisplayWidth: Integer): TField;
+var
+  fieldClass: TFieldClass;
 begin
-    Result:= DefaultFieldClasses[FieldType].Create(DataSet);
+    fieldClass := DefaultFieldClasses[FieldType];
+    if (fieldClass = nil) then
+    begin
+      fieldClass := TDataSetField;
+      ASize := 255;
+    end;
+
+    Result:= fieldClass.Create(DataSet);
     Result.FieldName:= FieldName;
     if Result.FieldName = '' then
       Result.FieldName:= 'Field' + IntToStr(DataSet.FieldCount +1);
@@ -35,7 +68,7 @@ begin
       Result.DisplayWidth := ADisplayWidth;
 
     if (FieldType = ftString) and (ASize <= 0) then
-      raise Exception.CreateFmt('Size não definido para o campo "%s".',[FieldName]);
+      raise Exception.CreateFmt('Size nÃ£o definido para o campo "%s".',[FieldName]);
 end;
 
 end.

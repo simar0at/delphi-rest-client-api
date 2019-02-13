@@ -58,7 +58,7 @@ begin
                                        .Post(TJsonListAdapter.NewFrom(vReqJson, TOldPerson)));
     try
       vRespJson.OwnsObjects := True;
-      CheckEqualsString(TOldPerson(vReqJson[0]).ToString, TOldPerson(vRespJson[0]).ToString);
+      CheckEquals(TOldPerson(vReqJson[0]).ToString, TOldPerson(vRespJson[0]).ToString);
     finally
       vRespJson.Free;
     end;
@@ -79,8 +79,8 @@ begin
                            .ContentType(RestUtils.MediaType_Json)
                            .Post(vReqJson));
     try
-      Status(vRespJson.ToString);
-      CheckEqualsString(vReqJson.ToString, vRespJson.ToString);
+      {$IFNDEF FPC}Status(vRespJson.ToString);{$ENDIF}
+      CheckEquals(vReqJson.ToString, vRespJson.ToString);
     finally
       vRespJson.Free;
     end;
@@ -101,7 +101,7 @@ begin
                                        .ContentType(RestUtils.MediaType_Json)
                                        .Put(vReqJson));
     try
-      CheckEqualsString(vReqJson.ToString, vRespJson.ToString);
+      CheckEquals(vReqJson.ToString, vRespJson.ToString);
     finally
       vRespJson.Free;
     end;
@@ -128,8 +128,8 @@ begin
     begin
       vPerson := TOldPerson(vResponse[i]);
       CheckTrue(vPerson.id > 0);
-      CheckNotEqualsString('', vPerson.name);
-      CheckNotEqualsString('', vPerson.email);
+      CheckNotEquals('', vPerson.name);
+      CheckNotEquals('', vPerson.email);
     end;
   finally
     vResponse.Free;
@@ -145,8 +145,8 @@ begin
                                     .Get(TOldPerson));
   try
     CheckEquals(123, vResponse.Id);
-    CheckEqualsString('Fabricio', vResponse.Name);
-    CheckEqualsString('fabricio.colombo.mva@gmail.com', vResponse.EMail);
+    CheckEquals('Fabricio', vResponse.Name);
+    CheckEquals('fabricio.colombo.mva@gmail.com', vResponse.EMail);
   finally
     vResponse.Free;
   end;

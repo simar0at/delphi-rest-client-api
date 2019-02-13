@@ -6,11 +6,6 @@ interface
 
 uses BaseTestRest, RestUtils, IdHTTPServer, IdCustomHTTPServer, IdContext, HttpConnection, IdHeaderList;
 
-
-{$IFDEF DELPHI_XE_UP}
-  {$DEFINE HAVE_INDY_FROM_DELPHI_XE_UP}
-{$ENDIF}
-
 type
   TTestHeader = class(TBaseTestRest)
   private
@@ -22,12 +17,6 @@ type
     function CreateHttpServer: TIdHTTPServer;
     procedure DestroyHttpServer;
 
-    {$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
-    procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
-    {$ELSE}
-    procedure OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
-    {$ENDIF}
-    procedure OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);overload;
     procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);overload;
 
     procedure OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
@@ -59,7 +48,7 @@ begin
                          .AcceptLanguage(RestUtils.LOCALE_US)
                          .Get;
 
-  CheckEqualsString('["pt_BR","en_US"]', vResponse);
+  CheckEquals('["pt_BR","en_US"]', vResponse);
 end;
 
 procedure TTestHeader.MultipleAcceptTypes;
@@ -155,7 +144,7 @@ begin
                          .Header('custom-b', '2')
                          .Get;
 
-  CheckEqualsString('{"custom-a":"1","custom-b":"2"}', vResponse);
+  CheckEquals('{"custom-a":"1","custom-b":"2"}', vResponse);
 end;
 
 procedure TTestHeader.OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
@@ -176,7 +165,7 @@ begin
                          .AcceptLanguage(RestUtils.LOCALE_PORTUGUESE_BRAZILIAN)
                          .Get;
 
-  CheckEqualsString('["pt_BR"]', vResponse);
+  CheckEquals('["pt_BR"]', vResponse);
 end;
 
 procedure TTestHeader.OneHeaderParams;
@@ -187,16 +176,9 @@ begin
                          .Header('x-foo', 'Bar')
                          .Get;
 
-  CheckEqualsString('{"x-foo":"Bar"}', vResponse);
+  CheckEquals('{"x-foo":"Bar"}', vResponse);
 end;
 
-procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList;
-  var VContinueProcessing: Boolean);
-begin
-  OnHeadersAvailable(AContext, EmptyStr, AHeaders, VContinueProcessing);
-end;
-
-{$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
 procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
 var
   vAuthorizationValue: string;

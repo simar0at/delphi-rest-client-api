@@ -7,7 +7,7 @@ interface
 uses Classes, SysUtils, HttpConnection,
      RestUtils, RestJsonUtils,
      {$IFDEF SUPPORTS_GENERICS}
-     Generics.Collections, Rtti,
+     Generics.Collections, Rtti, TypInfo,
      {$ELSE}
      Contnrs, OldRttiUnMarshal,
      {$ENDIF}
@@ -46,6 +46,7 @@ type
   TRestOnRequestEvent = procedure (ARestClient: TRestClient;
     AResource: TResource; AMethod: TRequestMethod) of object;
 
+  TRestOnResponseEvent = procedure (ARestClient: TRestClient; ResponseCode: Integer; const ResponseContent: string) of object;
 
   THTTPErrorEvent = procedure(ARestClient: TRestClient; AResource: TResource;
     AMethod: TRequestMethod; AHTTPError: EHTTPError;
@@ -100,11 +101,13 @@ type
 
   protected
     procedure Loaded; override;
+    function ResponseCodeRaisesError(ResponseCode: Integer): Boolean; virtual;
   public
     OnBeforeRequest: TRestOnRequestEvent;
     OnAfterRequest: TRestOnRequestEvent;
+    OnResponse: TRestOnResponseEvent;
 
-    constructor Create(Owner: TComponent); override;
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property ResponseCode: Integer read GetResponseCode;
@@ -157,6 +160,9 @@ type
 
     constructor Create(RestClient: TRestClient; URL: string);
     procedure SetContent(entity: TObject);
+    function EntityRequest(Entity: TObject; ResultClass: TClass; Method: TRequestMethod; AHandler: TRestResponseHandler = nil): TObject;
+    function ContentRequest(Content: TStream; Method: TRequestMethod; AHandler: TRestResponseHandler = nil): string; overload;
+    function ContentRequest(Content: TStream; ResultClass: TClass; Method: TRequestMethod; AHandler: TRestResponseHandler  = nil): TObject; overload;
   public
     destructor Destroy; override;
 
@@ -170,6 +176,7 @@ type
 
     function Accept(AcceptType: String): TResource;
     function Async(const Value: Boolean = True): TResource;
+    function Authorization(Authorization: String): TResource;
     function ContentType(ContentType: String): TResource;
     function AcceptLanguage(Language: String): TResource;
 
@@ -185,16 +192,25 @@ type
     function Post(Content: string): String;overload;
     procedure Post(Content: TStream; AHandler: TRestResponseHandler);overload;
     function Post(Entity: TObject): TObject;overload;
+    function Post(Content: string; ResultClass: TClass): TObject;overload;
+    function Post(Content: TStream; ResultClass: TClass): TObject;overload;
+    function Post(Entity: TObject; ResultClass: TClass): TObject;overload;
 
     function Put(Content: TStream): String;overload;
     function Put(Content: string): string;overload;
     procedure Put(Content: TStream; AHandler: TRestResponseHandler);overload;
     function Put(Entity: TObject): TObject;overload;
+    function Put(Content: string; ResultClass: TClass): TObject;overload;
+    function Put(Content: TStream; ResultClass: TClass): TObject;overload;
+    function Put(Entity: TObject; ResultClass: TClass): TObject;overload;
 
     function Patch(Content: TStream): String;overload;
     function Patch(Content: string): string;overload;
     procedure Patch(Content: TStream; AHandler: TRestResponseHandler);overload;
     function Patch(Entity: TObject): TObject;overload;
+    function Patch(Content: string; ResultClass: TClass): TObject;overload;
+    function Patch(Content: TStream; ResultClass: TClass): TObject;overload;
+    function Patch(Entity: TObject; ResultClass: TClass): TObject;overload;
 
     procedure Delete();overload;
     procedure Delete(Entity: TObject);overload;
@@ -202,6 +218,7 @@ type
     {$IFDEF SUPPORTS_ANONYMOUS_METHODS}
     procedure Get(AHandler: TRestResponseHandlerFunc);overload;
     procedure Post(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
+    Procedure Post(Entity: TObject; AHandler: TRestResponseHandlerFunc);overload;
     procedure Put(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
     procedure Patch(Content: TStream; AHandler: TRestResponseHandlerFunc);overload;
     {$ENDIF}
@@ -209,8 +226,11 @@ type
     {$IFDEF SUPPORTS_GENERICS}
     function Get<T>(): T;overload;
     function Post<T>(Entity: TObject): T;overload;
+    function Post<T>(Content: string): T;overload;
     function Put<T>(Entity: TObject): T;overload;
+    function Put<T>(Content: string): T;overload;
     function Patch<T>(Entity: TObject): T;overload;
+    function Patch<T>(Content: string): T;overload;
     {$ELSE}
     function Get(AListClass, AItemClass: TClass): TObject;overload;
     function Post(Adapter: IJsonListAdapter): TObject;overload;
@@ -225,6 +245,34 @@ type
     {$ENDIF}
   end;
 
+  {$IFDEF SUPPORTS_GENERICS}
+  TMultiPartFormAttachment = class
+  private
+    FFileName: string;
+    FMimeType: string;
+    FContent: TStringStream;
+  public
+    constructor Create(MimeType, FileName: string); overload;
+    constructor Create(Source: TStream; MimeType, FileName: string); overload;
+    constructor Create(FilePath, MimeType, FileName: string); overload;
+    destructor Destroy; override;
+    property Content: TStringStream read FContent write FContent;
+    property MimeType: string read FMimeType write FMimeType;
+    property FileName: string read FFileName write FFileName;
+  end;
+
+  TMultiPartFormData = class
+  private
+    FBoundary: string;
+    FContentType: string;
+    procedure AddFieldContent(Field: TRttiField; var Content: TStringList);
+  public
+    constructor Create;
+    function ContentAsString: string;
+    property ContentType: string read FContentType;
+  end;
+  {$ENDIF}
+
 implementation
 
 uses StrUtils, Math,
@@ -235,7 +283,7 @@ uses StrUtils, Math,
 
 { TRestClient }
 
-constructor TRestClient.Create(Owner: TComponent);
+constructor TRestClient.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF SUPPORTS_GENERICS}
@@ -251,7 +299,7 @@ begin
   FProxyCredentials := TProxyCredentials.Create(Self);
   FProxyCredentials.Name := 'ProxyCredentials';
   FProxyCredentials.SetSubComponent(True);
- 
+
   FLogin := '';
   FPassword := '';
 
@@ -289,9 +337,9 @@ function TRestClient.DoRequest(Method: TRequestMethod; ResourceRequest: TResourc
 const
   AuthorizationHeader = 'Authorization';
 var
-  vResponse: TStringStream;
+  vResponse: TBytesStream;
   vUrl: String;
-  vResponseString: string;
+  vResponseString: RawByteString;
   vRetryMode: THTTPRetryMode;
   vHeaders: TStrings;
   vEncodedCredentials: string;
@@ -299,7 +347,7 @@ var
 begin
   CheckConnection;
 
-  vResponse := TStringStream.Create('');
+  vResponse := TBytesStream.Create();
   try
     vHeaders := ResourceRequest.GetHeaders;
 
@@ -324,6 +372,9 @@ begin
 
     if assigned(OnBeforeRequest) then
       OnBeforeRequest(self, ResourceRequest, Method);
+
+    ResourceRequest.GetContent.Position := 0;
+
     case Method of
       METHOD_GET: FHttpConnection.Get(vUrl, vResponse);
       METHOD_POST: FHttpConnection.Post(vURL, ResourceRequest.GetContent, vResponse);
@@ -331,27 +382,27 @@ begin
       METHOD_PATCH: FHttpConnection.Patch(vURL, ResourceRequest.GetContent, vResponse);
       METHOD_DELETE: FHttpConnection.Delete(vUrl, ResourceRequest.GetContent, vResponse);
     end;
+
     if Assigned(AHandler) then
-    begin
-      AHandler(vResponse);
-    end
+      AHandler(vResponse)
     else
     begin
       {$IFDEF UNICODE}
-        vResponseString := vResponse.DataString;
-
+        vResponseString := PAnsiChar(vResponse.Bytes);
         {$IFDEF NEXTGEN}
           Result := TEncoding.UTF8.GetString(TEncoding.UTF8.GetBytes(vResponseString.ToCharArray), 0, vResponseString.Length);
         {$ELSE}
           Result := UTF8ToUnicodeString(RawByteString(vResponseString));
         {$ENDIF}
       {$ELSE}
-        vResponseString := vResponse.DataString;
+        vResponseString := PAnsiChar(vResponse.Bytes);
 
-        Result := UTF8Decode(vResponse.DataString);
+        Result := TEncoding.UTF8.GetString(vResponse.Bytes, 0, Length(vResponseString));
       {$ENDIF}
+      if Assigned(OnResponse) then
+        OnResponse(Self, FHttpConnection.ResponseCode, Result);
     end;
-    if (FHttpConnection.ResponseCode >= TStatusCode.BAD_REQUEST.StatusCode) then
+    if ResponseCodeRaisesError(FHttpConnection.ResponseCode) then
     begin
       vRetryMode := hrmRaise;
       if assigned(FOnError) then
@@ -421,7 +472,7 @@ end;
 function TRestClient.GetResponseCode: Integer;
 begin
   CheckConnection;
-  
+
   Result := FHttpConnection.ResponseCode;
 end;
 
@@ -444,6 +495,7 @@ begin
     begin
       FHttpConnection := THttpConnectionFactory.NewConnection(FConnectionType);
       FHttpConnection.EnabledCompression := FEnabledCompression;
+      FHttpConnection.VerifyCert := FVerifyCert;
     end;
   end;
 end;
@@ -466,6 +518,11 @@ begin
   Result := TResource.Create(Self, URL);
 
   FResources.Add(Result);
+end;
+
+function TRestClient.ResponseCodeRaisesError(ResponseCode: Integer): Boolean;
+begin
+  Result := (ResponseCode >= TStatusCode.BAD_REQUEST.StatusCode);
 end;
 
 procedure TRestClient.SetVerifyCertificate(AValue: boolean);
@@ -540,10 +597,7 @@ end;
 
 procedure TResource.Post(Content: TStream; AHandler: TRestResponseHandler);
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
-  FRestClient.DoRequest(METHOD_POST, Self, AHandler);
+  ContentRequest(Content, METHOD_POST, AHandler)
 end;
 
 function TResource.Put(Content: string): string;
@@ -572,16 +626,19 @@ end;
 
 procedure TResource.Put(Content: TStream; AHandler: TRestResponseHandler);
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
-  FRestClient.DoRequest(METHOD_PUT, Self, AHandler);
+  ContentRequest(Content, METHOD_PUT, AHandler);
 end;
 
 {$IFDEF SUPPORTS_ANONYMOUS_METHODS}
 procedure TResource.Get(AHandler: TRestResponseHandlerFunc);
 begin
   FRestClient.DoRequestFunc(METHOD_GET, Self, AHandler);
+end;
+
+procedure TResource.Post(Entity: TObject; AHandler: TRestResponseHandlerFunc);
+begin
+  SetContent(Entity);
+  FRestClient.DoRequestFunc(METHOD_POST, Self, AHandler);
 end;
 
 procedure TResource.Post(Content: TStream; AHandler: TRestResponseHandlerFunc);
@@ -635,6 +692,35 @@ begin
   Result := Self;
 end;
 
+function TResource.Authorization(Authorization: String): TResource;
+begin
+  Result := Header('Authorization', Authorization);
+end;
+
+function TResource.ContentRequest(Content: TStream; Method: TRequestMethod;
+  AHandler: TRestResponseHandler): string;
+begin
+  FContent.Clear;
+  if assigned(Content) then
+  begin
+    Content.Position := 0;
+    FContent.CopyFrom(Content, Content.Size);
+  end;
+  Result := FRestClient.DoRequest(Method, Self, AHandler);
+end;
+
+function TResource.ContentRequest(Content: TStream; ResultClass: TClass;
+  Method: TRequestMethod; AHandler: TRestResponseHandler): TObject;
+var
+  vResponse: string;
+begin
+  vResponse := ContentRequest(Content, Method, AHandler);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal(ResultClass, vResponse)
+  else
+    Result := nil;
+end;
+
 function TResource.ContentType(ContentType: String): TResource;
 begin
   FContentTypes := ContentType;
@@ -666,10 +752,23 @@ end;
 destructor TResource.Destroy;
 begin
   FRestClient.FResources.Extract(Self);
-  
+
   FContent.Free;
   FHeaders.Free;
   inherited;
+end;
+
+function TResource.EntityRequest(Entity: TObject; ResultClass: TClass; Method: TRequestMethod; AHandler: TRestResponseHandler = nil): TObject;
+var
+  vResponse: string;
+begin
+  if Entity <> nil then
+    SetContent(Entity);
+  vResponse := FRestClient.DoRequest(Method, Self, AHandler);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal(ResultClass, vResponse)
+  else
+    Result := nil;
 end;
 
 function TResource.Get: string;
@@ -716,10 +815,7 @@ end;
 
 function TResource.Post(Content: TStream): String;
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
-  Result := FRestClient.DoRequest(METHOD_POST, Self);
+  Result := ContentRequest(Content, METHOD_POST)
 end;
 
 {$IFDEF SUPPORTS_GENERICS}
@@ -748,6 +844,17 @@ begin
     Result := Default(T);
 end;
 
+function TResource.Post<T>(Content: string): T;
+var
+  vResponse: string;
+begin
+  vResponse := Post(Content);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal<T>(vResponse)
+  else
+    Result := Default(T);
+end;
+
 function TResource.Put<T>(Entity: TObject): T;
 var
   vResponse: string;
@@ -757,6 +864,17 @@ begin
   vResponse := FRestClient.DoRequest(METHOD_PUT, Self);
 
   if trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal<T>(vResponse)
+  else
+    Result := Default(T);
+end;
+
+function TResource.Put<T>(Content: string): T;
+var
+  vResponse: string;
+begin
+  vResponse := Put(Content);
+  if Trim(vResponse) <> '' then
     Result := TJsonUtil.UnMarshal<T>(vResponse)
   else
     Result := Default(T);
@@ -775,6 +893,18 @@ begin
   else
     Result := Default(T);
 end;
+
+function TResource.Patch<T>(Content: string): T;
+var
+  vResponse: string;
+begin
+  vResponse := Patch(Content);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal<T>(vResponse)
+  else
+    Result := Default(T);
+end;
+
 {$ELSE}
 function TResource.Get(AListClass, AItemClass: TClass): TObject;
 var
@@ -865,89 +995,130 @@ end;
 
 procedure TResource.SetContent(entity: TObject);
 var
-  vJson: string;
+  vRawContent: string;
   vStream: TStringStream;
+  {$IFDEF SUPPORTS_GENERICS}
+  vMultipartFormData: TMultipartFormData;
+  {$ENDIF}
 begin
   FContent.Clear;
-  if Assigned(entity) then
-  begin
-     vJson := TJsonUtil.Marshal(Entity);
+  if not Assigned(entity) then
+    Exit;
 
-    vStream := TStringStream.Create(vJson);
-    try
-      vStream.Position := 0;
-      FContent.CopyFrom(vStream, vStream.Size);
-    finally
-      vStream.Free;
-    end;
+  {$IFDEF SUPPORTS_GENERICS}
+  if entity is TMultipartFormData then
+  begin
+    vMultipartFormData := TMultipartFormData(entity);
+    vRawContent := vMultipartFormData.ContentAsString;
+    ContentType(vMultipartFormData.ContentType);
+  end
+  else
+  {$ENDIF}
+    vRawContent := TJsonUtil.Marshal(Entity);
+
+  vStream := TStringStream.Create(vRawContent);
+  try
+    vStream.Position := 0;
+    FContent.CopyFrom(vStream, vStream.Size);
+  finally
+    vStream.Free;
   end;
 end;
 
 function TResource.Put(Content: TStream): String;
 begin
-  if Content <> nil then
-  begin
-    Content.Position := 0;
-    FContent.CopyFrom(Content, Content.Size);
-  end;
-  Result := FRestClient.DoRequest(METHOD_PUT, Self);
+  Result := ContentRequest(Content, METHOD_PUT);
 end;
 
 function TResource.Post(Entity: TObject): TObject;
-var
-  vResponse: string;
 begin
-  if Entity <> nil then
-    SetContent(Entity);
-  vResponse := FRestClient.DoRequest(METHOD_POST, Self);
-  if trim(vResponse) <> '' then
-    Result := TJsonUtil.UnMarshal(Entity.ClassType, vResponse)
-  else
-    Result := nil;
+  Result := Post(Entity, Entity.ClassType);
+end;
+
+function TResource.Post(Content: string; ResultClass: TClass): TObject;
+var
+  vStringStream: TStringStream;
+begin
+  vStringStream := TStringStream.Create(Content);
+  try
+    Result := Post(vStringStream, ResultClass);
+  finally
+    vStringStream.Free;
+  end;
+end;
+
+function TResource.Post(Content: TStream; ResultClass: TClass): TObject;
+begin
+  Result := ContentRequest(Content, ResultClass, METHOD_POST);
+end;
+
+function TResource.Post(Entity: TObject; ResultClass: TClass): TObject;
+begin
+  Result := EntityRequest(Entity, ResultClass, METHOD_POST);
 end;
 
 function TResource.Put(Entity: TObject): TObject;
-var
-  vResponse: string;
 begin
-  if Entity <> nil then
-    SetContent(Entity);
+  Result := Put(Entity, Entity.ClassType);
+end;
 
-  vResponse := FRestClient.DoRequest(METHOD_PUT, Self);
-  if trim(vResponse) <> '' then
-    Result := TJsonUtil.UnMarshal(Entity.ClassType, vResponse)
-  else
-    Result := nil;
+function TResource.Put(Content: string; ResultClass: TClass): TObject;
+var
+  vStringStream: TStringStream;
+begin
+  vStringStream := TStringStream.Create(Content);
+  try
+    Result := Put(vStringStream, ResultClass);
+  finally
+    vStringStream.Free;
+  end;
+end;
+
+function TResource.Put(Content: TStream; ResultClass: TClass): TObject;
+begin
+  Result := ContentRequest(Content, ResultClass, METHOD_PUT);
+end;
+
+function TResource.Put(Entity: TObject; ResultClass: TClass): TObject;
+begin
+  Result := EntityRequest(Entity, ResultClass, METHOD_PUT);
 end;
 
 function TResource.Patch(Content: TStream): String;
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
-  Result := FRestClient.DoRequest(METHOD_PATCH, Self);
+  Result := ContentRequest(Content, METHOD_PATCH);
 end;
 
 procedure TResource.Patch(Content: TStream; AHandler: TRestResponseHandler);
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
-
-  FRestClient.DoRequest(METHOD_PATCH, Self, AHandler);
+  ContentRequest(Content, METHOD_PATCH, AHandler);
 end;
 
 function TResource.Patch(Entity: TObject): TObject;
-var
-  vResponse: string;
 begin
-  if Entity <> nil then
-    SetContent(Entity);
+  Result := Patch(Entity, Entity.ClassType);
+end;
 
-  vResponse := FRestClient.DoRequest(METHOD_PATCH, Self);
-  if trim(vResponse) <> '' then
-    Result := TJsonUtil.UnMarshal(Entity.ClassType, vResponse)
-  else
-    Result := nil;
+function TResource.Patch(Content: string; ResultClass: TClass): TObject;
+var
+  vStringStream: TStringStream;
+begin
+  vStringStream := TStringStream.Create(Content);
+  try
+    Result := Patch(vStringStream, ResultClass);
+  finally
+    vStringStream.Free;
+  end;
+end;
+
+function TResource.Patch(Content: TStream; ResultClass: TClass): TObject;
+begin
+  Result := ContentRequest(Content, ResultClass, METHOD_PATCH);
+end;
+
+function TResource.Patch(Entity: TObject; ResultClass: TClass): TObject;
+begin
+  Result := EntityRequest(Entity, ResultClass, METHOD_PATCH);
 end;
 
 function TResource.Patch(Content: string): string;
@@ -984,5 +1155,95 @@ class function TJsonListAdapter.NewFrom(AList: TList; AItemClass: TClass): IJson
 begin
   Result := TJsonListAdapter.Create(AList, AItemClass);
 end;
+
+{ TMultiPartFormData }
+
+{$IFDEF SUPPORTS_GENERICS}
+procedure TMultiPartFormData.AddFieldContent(Field: TRttiField; var Content: TStringList);
+const
+  FmtTextContent = 'Content-Disposition: form-data; name="%s"'+ sLineBreak+sLineBreak +'%s';
+  FmtFileContent = 'Content-Disposition: form-data; name="%s"; filename="%s"'+ sLineBreak +'Content-Type: %s'+ sLineBreak+sLineBreak+ '%s';
+var
+  Attachment: TMultiPartFormAttachment;
+begin
+  if Field.FieldType.TypeKind in [tkString, tkUString, tkWChar, tkLString, tkWString, tkInteger, tkChar, tkWChar] then
+  begin
+    Content.Add(Format(FmtTextContent, [Field.Name, Field.GetValue(Self).AsString]));
+    Exit;
+  end;
+
+  if Field.FieldType.Name.Equals(TMultiPartFormAttachment.ClassName) then
+  begin
+    Attachment := Field.GetValue(Self).AsType<TMultiPartFormAttachment>;
+    Content.Add(Format(FmtFileContent, [Field.Name, Attachment.FileName, Attachment.MimeType, Attachment.Content.DataString]));
+  end;
+end;
+
+function TMultiPartFormData.ContentAsString: string;
+var
+  vField: TRttiField;
+  vContent: TStringList;
+  vBoundary: string;
+  vRttiContext: TRttiContext;
+  vRttiType: TRttiType;
+begin
+  vBoundary := '--' + FBoundary;
+
+  vContent := TStringList.Create;
+  try
+    vContent.Add(vBoundary);
+
+    vRttiContext := TRttiContext.Create;
+    vRttiType := vRttiContext.GetType(Self.ClassType);
+    for vField in vRttiType.GetDeclaredFields do
+    begin
+      AddFieldContent(vField, vContent);
+      vContent.Add(vBoundary);
+    end;
+
+    vContent.Strings[Pred(vContent.Count)] := vBoundary + '--';
+    Result := vContent.Text;
+  finally
+    vContent.Free;
+  end;
+end;
+
+constructor TMultiPartFormData.Create;
+const
+  FmtBoundary = 'boundary--%s';
+  FmtContentType = 'multipart/form-data; boundary=%s';
+var
+  vGUID: TGUID;
+begin
+  CreateGUID(vGUID);
+  FBoundary := Format(FmtBoundary, [GUIDToString(vGUID)]);
+  FContentType := Format(FmtContentType, [FBoundary]);
+end;
+
+constructor TMultiPartFormAttachment.Create(Source: TStream; MimeType, FileName: string);
+begin
+  Create(MimeType, FileName);
+  FContent.LoadFromStream(Source);
+end;
+
+constructor TMultiPartFormAttachment.Create(FilePath, MimeType, FileName: string);
+begin
+  Create(MimeType, FileName);
+  FContent.LoadFromFile(FilePath);
+end;
+
+constructor TMultiPartFormAttachment.Create(MimeType, FileName: string);
+begin
+  FContent := TStringStream.Create;
+  FMimeType := MimeType;
+  FFileName := FileName;
+end;
+
+destructor TMultiPartFormAttachment.Destroy;
+begin
+  FContent.Free;
+  inherited;
+end;
+{$ENDIF}
 
 end.

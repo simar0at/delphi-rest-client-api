@@ -1,4 +1,4 @@
-unit TestHelloWorld;
+Ôªøunit TestHelloWorld;
 
 interface
 
@@ -18,7 +18,7 @@ implementation
 
 procedure TTestHelloWorld.GET_HelloWorldAsJson;
 const
-  ExpectedJson = '{"msg":"Ol· Mundo!"}';
+  ExpectedJson = '{"msg":"Ol√° Mundo!"}';
 var
   vResponse: string;
 begin
@@ -26,12 +26,12 @@ begin
                          .Accept('application/json')
                          .GET();
 
-  CheckEqualsString(ExpectedJson, vResponse);
+  CheckEquals(ExpectedJson, vResponse);
 end;
 
 procedure TTestHelloWorld.GET_HelloWorldAsXml;
 const
-  ExpectedXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><helloWorld><msg>Ol· Mundo!</msg></helloWorld>';
+  ExpectedXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><helloWorld><msg>Ol√° Mundo!</msg></helloWorld>';
 var
   vResponse: string;
 begin
@@ -39,7 +39,7 @@ begin
                          .Accept('text/xml')
                          .GET();
 
-  CheckEqualsString(ExpectedXml, vResponse);
+  CheckEquals(ExpectedXml, vResponse);
 end;
 
 initialization

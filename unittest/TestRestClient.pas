@@ -4,7 +4,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses TestFramework, RestClient, HttpConnection, Classes, SysUtils, RestException;
+uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF}RestClient, HttpConnection, Classes, SysUtils, RestException;
 
 type
   TTestRestClient = class(TTestCase)
@@ -70,13 +70,21 @@ type
 
 procedure TTestRestClient.InvalidCustomConnectionConfiguration;
 begin
+  {$IFNDEF FPC}
   ExpectedException := EInvalidHttpConnectionConfiguration;
+  {$ELSE}
+  ExpectException(EInvalidHttpConnectionConfiguration);
+  {$ENDIF}
   FRest.ConnectionType := hctCustom;
 end;
 
 procedure TTestRestClient.InvalidCustomConnectionConfigurationResult;
 begin
+  {$IFNDEF FPC}
   ExpectedException := ECustomCreateConnectionException;
+  {$ELSE}
+  ExpectException(ECustomCreateConnectionException);
+  {$ENDIF}
   FRest.OnCustomCreateConnection := OnCreateCustomConnectionNull;
   FRest.ConnectionType := hctCustom;
 end;
@@ -97,13 +105,21 @@ end;
 
 procedure TTestRestClient.RaiseExceptionWhenInactiveConnection;
 begin
+  {$IFNDEF FPC}
   ExpectedException := EInactiveConnection;
+  {$ELSE}
+  ExpectException(EInactiveConnection);
+  {$ENDIF}
   FRest.ResponseCode;
 end;
 
 procedure TTestRestClient.RaiseExceptionWhenInactiveConnection2;
 begin
+  {$IFNDEF FPC}
   ExpectedException := EInactiveConnection;
+  {$ELSE}
+  ExpectException(EInactiveConnection);
+  {$ENDIF}
   FRest.Resource('https://www.google.com.br').Get;
 end;
 
@@ -158,6 +174,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestRestClient.Suite);
+  RegisterTest(TTestRestClient{$IFNDEF FPC}.Suite{$ENDIF});
 
 end.

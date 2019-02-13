@@ -15,11 +15,14 @@ implementation
 uses
    DateUtils, SysUtils
 {$IFNDEF MACOS}
+{$IFNDEF LINUX}
    , Windows
+{$ENDIF}
 {$ENDIF}
    ;
 
 {$IFNDEF MACOS}
+{$IFNDEF LINUX}
 {$IFDEF WINDOWSNT_COMPATIBILITY}
 function DayLightCompareDate(const date: PSystemTime;
   const compareDate: PSystemTime): Integer;
@@ -246,9 +249,11 @@ function SystemTimeToTzSpecificLocalTime(
   lpTimeZoneInformation: PTimeZoneInformation;
   lpUniversalTime, lpLocalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll';
 {$ENDIF WINDOWSNT_COMPATIBILITY}
+{$ENDIF LINUX}
 {$ENDIF MACOS}
 
 {$IFDEF UNIX}
+{$IFNDEF FPC}
 function GetTimeBias: integer;
 var
   TimeVal: TTimeVal;
@@ -257,6 +262,13 @@ begin
   fpGetTimeOfDay(@TimeVal, @TimeZone);
   Result := TimeZone.tz_minuteswest;
 end;
+{$ELSE}
+function GetTimeBias: integer;
+begin
+  Result := 0;
+end;
+
+{$ENDIF}
 {$ELSE}
 function GetTimeBias: integer;
 var
@@ -294,6 +306,7 @@ begin
   Result := Round((univTime - UnixDateDelta) * 86400000);
 end;
 {$ELSE}
+{$IFNDEF FPC}
 function JavaToDelphiDateTime(const dt: int64): TDateTime;
 var
   t: TSystemTime;
@@ -311,7 +324,24 @@ begin
   TzSpecificLocalTimeToSystemTime(nil, @t, @t);
   Result := Round((SystemTimeToDateTime(t) - 25569) * 86400000)
 end;
-{$ENDIF}
+{$ELSE}
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+var
+  _local, utc: TSystemTime;
+begin
+  DateTimeToSystemTime(25569 + (dt / 86400000), utc);
+  Result := SystemTimeToDateTime(utc);
+end;
+
+function DelphiToJavaDateTime(const dt: TDateTime): int64;
+var
+  _local, utc, st: TSystemTime;
+begin
+  DateTimeToSystemTime(dt, _local);
+  Result := Round((SystemTimeToDateTime(_local) - 25569) * 86400000);
+end;
+{$ENDIF FPC}
+{$ENDIF DELPHI_XE_UP}
 
 function ISO8601DateToJavaDateTime(const str: string; var ms: Int64): Boolean;
 type
