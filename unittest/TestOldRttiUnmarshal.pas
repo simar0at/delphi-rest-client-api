@@ -215,7 +215,7 @@ begin
   {$IFNDEF FPC}
   CheckEquals(RoundTo(1.23, -2), RoundTo(FObject.valueCurrency, -2));
   {$ELSE}
-  CheckEquals('1.23', CurrToStr(FObject.valueCurrency))
+  CheckEquals(FloatToStr(1.23), CurrToStr(FObject.valueCurrency))
   {$ENDIF}
 end;
 

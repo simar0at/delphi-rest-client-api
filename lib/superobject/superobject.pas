@@ -652,12 +652,12 @@ type
     procedure SetDataPtr(const Value: Pointer);
   protected
 {$IFDEF FPC}
-    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} iid: tguid; out obj): longint;{$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
+    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} iid: tguid; out obj): longint;{$IFNDEF MSWINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
 {$ELSE}
     function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
 {$ENDIF}
-    function _AddRef: Integer; virtual; {$IFDEF WINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
-    function _Release: Integer; virtual; {$IFDEF WINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
+    function _AddRef: Integer; virtual; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
+    function _Release: Integer; virtual; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 
     function GetO(const path: SOString): ISuperObject;
     procedure PutO(const path: SOString; const Value: ISuperObject);
@@ -4702,12 +4702,12 @@ begin
   end;
 end;
 
-function TSuperObject._AddRef: Integer; {$IFDEF WINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
+function TSuperObject._AddRef: Integer; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 begin
   Result := InterlockedIncrement(FRefCount);
 end;
 
-function TSuperObject._Release: Integer; {$IFDEF WINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
+function TSuperObject._Release: Integer; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 begin
   Result := InterlockedDecrement(FRefCount);
   if Result = 0 then

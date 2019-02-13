@@ -3,7 +3,7 @@ unit supertimezone;
 interface
 
 uses
-  {$IFDEF WINDOWS}Windows, {$ENDIF}Registry, SysUtils, Math, Generics.Collections,
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}Registry, SysUtils, Math, Generics.Collections,
   supertypes;
 
 type
@@ -16,7 +16,7 @@ type
   private
     FName: SOString;
     function GetName: SOString;
-    {$IFDEF WINDOWS}
+    {$IFDEF MSWINDOWS}
 
     { Windows Internals }
     function TzSpecificLocalTimeToSystemTime(
@@ -66,7 +66,7 @@ type
 
     { TZ Info }
     class function GetCurrentTimeZone: SOString;
-    {$IFDEF WINDOWS}
+    {$IFDEF MSWINDOWS}
     function GetTimeZoneInformation(Year: Word; var TZI: TTimeZoneInformation): Boolean;
     {$ENDIF}
     function GetDaylightDisabled: Boolean;
@@ -254,7 +254,7 @@ begin
 end;
 
 function TSuperTimeZone.LocalToUTC(const DelphiDateTime: TDateTime): TDateTime;
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   _local, utc: TSystemTime;
   tzi: TTimeZoneInformation;
@@ -272,7 +272,7 @@ end;
 {$ENDIF}
 
 function TSuperTimeZone.UTCToLocal(const DelphiDateTime: TDateTime): TDateTime;
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   utc, _local: TSystemTime;
   tzi: TTimeZoneInformation;
@@ -290,7 +290,7 @@ end;
 {$ENDIF}
 
 function TSuperTimeZone.DelphiToJava(const DelphiDateTime: TDateTime): Int64;
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   _local, utc, st: TSystemTime;
   tzi: TTimeZoneInformation;
@@ -312,7 +312,7 @@ end;
 {$ENDIF}
 
 function TSuperTimeZone.JavaToDelphi(const JavaDateTime: Int64): TDateTime;
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   utc, _local: TSystemTime;
   tzi: TTimeZoneInformation;
@@ -338,7 +338,7 @@ const
   ISO_Fmt = '%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%d';
   TZ_Fmt  = '%s%.2d:%.2d';
 
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   _local, utc: TSystemTime;
   tzi: TTimeZoneInformation;
@@ -406,7 +406,7 @@ end;
 
 function TSuperTimeZone.ISO8601ToJava(const ISO8601Date: SOString;
   var JavaDateTime: Int64): Boolean;
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 var
   st: TSystemTime;
   dayofyear: Integer;
@@ -546,7 +546,7 @@ begin
   end;
 end;
 
-{$IFDEF WINDOWS}
+{$IFDEF MSWINDOWS}
 
 function TSuperTimeZone.GetTimeZoneInformation(Year: Word;
   var TZI: TTimeZoneInformation): Boolean;

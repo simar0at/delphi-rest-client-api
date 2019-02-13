@@ -13,7 +13,7 @@ implementation
 uses
   SysUtils,
   Registry
-  {$IFDEF WINDOWS}, Windows {$ENDIF};
+  {$IFDEF MSWINDOWS}, Windows {$ENDIF};
 
 const
   INTERNET_SETTINGS = 'Software\Microsoft\Windows\CurrentVersion\Internet Settings';
