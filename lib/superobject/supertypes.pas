@@ -18,7 +18,7 @@ type
 {$ENDIF}
   SuperInt = Int64;
 
-{$if (sizeof(Char) > 1)}
+{$if (sizeof(Char) = 1)}
   SOChar = WideChar;
   SOIChar = Word;
   PSOChar = PWideChar;
