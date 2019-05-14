@@ -5,11 +5,14 @@ interface
 uses TypInfo, SuperObject, Variants, SysUtils, Math, Classes;
 
 type
+  TObjectArray = array of TObject;
+
   TOldRttiUnMarshal = class
   private
     function FromClass(AClassType: TClass; AJSONValue: ISuperObject): TObject;
     function FromList(AClassType: TClass; APropInfo: PPropInfo; const AJSONValue: ISuperObject): TList;overload;
     function FromList(AClassType, AItemClassType: TClass; const AJSONValue: ISuperObject): TList;overload;
+    function FromArray(AItemClassType: TClass; const AJSONValue: ISuperObject): TObjectArray;
     function FromInt(APropInfo: PPropInfo; const AJSONValue: ISuperObject): Variant;
     function FromInt64(APropInfo: PPropInfo; const AJSONValue: ISuperObject): Variant;
     function FromFloat(APropInfo: PPropInfo; const AJSONValue: ISuperObject): Variant;
@@ -23,7 +26,14 @@ type
 
 implementation
 
-uses RestJsonUtils, superdate;
+uses RestJsonUtils{$IFDEF FPC}, Contnrs{$ENDIF};
+
+type
+  PDynArray = ^TDynArray;
+  TDynArray = packed record
+   refcount : ptrint;
+   high : tdynarrayindex;
+  end;
 
 { TOldRttiUnMarshal }
 
@@ -38,16 +48,19 @@ end;
 
 function TOldRttiUnMarshal.FromClass(AClassType: TClass; AJSONValue: ISuperObject): TObject;
 var
-  i: Integer;
+  i, l: Integer;
   vTypeInfo: PTypeInfo;
-  vTypeData: PTypeData;
+  vTypeData, vArrayTypeData: PTypeData;
   vPropList: PPropList;
   vPropInfo: PPropInfo;
   value: Variant;
   vPropName: string;
   vInt64Value: Int64;
   vObjProp: TObject;
+  vObjArrayProp: TObjectArray;
+  vDynArray: PDynArray;
   vObjClass: TClass;
+  vPropType: {$IFNDEF FPC}PTypeInfo{$ELSE}TTypeInfo{$ENDIF};
 begin
   Result := nil;
 
@@ -68,12 +81,14 @@ begin
                       vPropName := String(vPropInfo^.Name);
 
                       value := Null;
+                      vPropType := vPropInfo^.PropType^;
                       try
-                        case vPropInfo^.PropType^.Kind of
+                        case vPropType.Kind of
                           tkMethod: ;
                           tkSet,
                           tkInteger,
-                          tkEnumeration: begin
+                          tkEnumeration
+                          {$IFDEF FPC}, tkBool{$ENDIF}: begin
                                            value := FromInt(vPropInfo, AJSONValue.O[vPropName]);
                                            if not VarIsNull(value) then
                                            begin
@@ -98,11 +113,11 @@ begin
                           {$IFDEF UNICODE}
                           tkUString,
                           {$ENDIF}
-                          tkWString: value := FromString(vPropInfo, AJSONValue.O[vPropName]);
+                          tkWString{$IFDEF FPC}, tkAString{$ENDIF}: value := FromString(vPropInfo, AJSONValue.O[vPropName]);
                           tkClass: begin
                                       value := Null;
 
-                                      vObjClass := GetObjectPropClass(Result, vPropInfo);
+                                      vObjClass := GetObjectPropClass(Result, {$IFNDEF FPC}vPropInfo{$ELSE}vPropName{$ENDIF});
 
                                       if vObjClass.InheritsFrom(TList) then
                                       begin
@@ -118,6 +133,20 @@ begin
                                         SetObjectProp(Result, vPropInfo, vObjProp);
                                       end;
                                    end;
+                          tkDynArray: begin
+                                        vArrayTypeData := GetTypeData(GetTypeData(@vPropType).elType2);
+                                        vObjArrayProp := FromArray(vArrayTypeData^.ClassType, AJSONValue.O[vPropName]);
+                                        if (Length(vObjArrayProp) > 0) then
+                                        begin
+                                          vDynArray:=Pointer(@vObjArrayProp[0])-sizeof(TDynArray);
+                                          InterLockedIncrement(vDynArray^.refcount);
+                                          {$ifdef cpu64}
+                                          SetInt64Prop(Result,vPropInfo,Int64(vObjArrayProp));
+                                          {$else cpu64}
+                                          SetOrdProp(Result,vPropInfo,PtrInt(vObjArrayProp));
+                                          {$endif cpu64}
+                                        end;
+                                      end;
                         end;
                       except
                         on E: Exception do
@@ -154,13 +183,13 @@ begin
   case ObjectGetType(AJSONValue) of
     stInt, stDouble, stCurrency:
       begin
-        if APropInfo^.PropType^ = System.TypeInfo(TDateTime) then
+        if Pointer(APropInfo^.PropType) = System.TypeInfo(TDateTime) then
         begin
           Result := JavaToDelphiDateTime(AJSONValue.AsInteger);
         end
         else
         begin
-          case GetTypeData(APropInfo^.PropType^).FloatType of
+          case GetTypeData(APropInfo^.PropType{$IFNDEF FPC}^{$ENDIF})^.FloatType of
             ftSingle: Result := AJSONValue.AsDouble;
             ftDouble: Result := AJSONValue.AsDouble;
             ftExtended: Result := AJSONValue.AsDouble;
@@ -300,7 +329,12 @@ begin
   begin
     if AClassType.InheritsFrom(TList) and (AJSONValue.AsArray.Length > 0) then
     begin
-      Result := TList(AClassType.Create);
+      {$IFNDEF FPC}
+      Result := TList(AClassType.Create)
+      {$ELSE}
+      if AClassType.InheritsFrom(TObjectList) then Result := TObjectList.Create
+      else Result := TList.Create
+      {$ENDIF};
       try
         for i := 0 to AJSONValue.AsArray.Length-1 do
         begin
@@ -310,6 +344,33 @@ begin
         end;
       except
         Result.Free;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+function TOldRttiUnMarshal.FromArray(AItemClassType: TClass; const AJSONValue: ISuperObject): TObjectArray;
+var
+  i: Integer;
+  vItem: TObject;
+begin
+  SetLength(Result, 0);
+  if ObjectIsType(AJSONValue, stArray) then
+  begin
+    if (AJSONValue.AsArray.Length > 0) then
+    begin
+      try
+        for i := 0 to AJSONValue.AsArray.Length-1 do
+        begin
+          vItem := FromClass(AItemClassType, AJSONValue.AsArray.O[i]);
+          SetLength(Result, Length(Result) + 1);
+          Result[Length(Result) - 1] := vItem;
+        end;
+      except
+        for i := 0 to Length(Result) - 1 do
+          Result[i].Free;
+        SetLength(Result, 0);
         raise;
       end;
     end;

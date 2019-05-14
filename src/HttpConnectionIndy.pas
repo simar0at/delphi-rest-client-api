@@ -21,19 +21,19 @@ type
     FVerifyCert: boolean;
     procedure CancelRequest;
     ///
+    ///  Delphi XE2 and newer
+    ///
+    function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean; ADepth, AError: Integer): Boolean; overload;
+    {$IFNDEF DELPHI_10TOKYO_UP}
+    ///
     ///  Delphi 2007
     ///
-    {$IFNDEF DELPHI_10TOKYO_UP}
     function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean): Boolean;overload;
     ///
     ///  Delphi 2010 and XE
     ///
     function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean; ADepth: Integer): Boolean;overload;
     {$ENDIF}
-    ///
-    ///  Delphi XE2 and newer
-    ///
-    function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean; ADepth, AError: Integer): Boolean;overload;
   public
     OnConnectionLost: THTTPConnectionLostEvent;
 
@@ -72,7 +72,8 @@ type
 implementation
 
 uses
-  ProxyUtils;
+  ProxyUtils
+  {$IFDEF UNIX}, IdSSLOpenSSLHeaders{$ENDIF};
 
 { THttpConnectionIndy }
 
@@ -105,6 +106,9 @@ var
   ssl: TIdSSLIOHandlerSocketOpenSSL;
   ProxyServerIP: string;
 begin
+  {$IFDEF UNIX}
+  IdOpenSSLSetLoadSymLinksFirst(False);
+  {$ENDIF}
   FIdHttp := TIdHTTP.Create(nil);
   ssl := TIdSSLIOHandlerSocketOpenSSL.Create(FIdHttp);
   ssl.OnVerifyPeer := IdSSLIOHandlerSocketOpenSSL1VerifyPeer;
@@ -119,6 +123,10 @@ begin
   {$ifend}
 
   {$IFDEF DELPHI_XE3_UP}
+    ssl.SSLOptions.SSLVersions := [sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
+  {$ENDIF}
+
+  {$IFDEF FPC}
     ssl.SSLOptions.SSLVersions := [sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
   {$ENDIF}
 

@@ -107,7 +107,7 @@ end;
 procedure TTestDataSetHandler.JsonToDynamicDataSet;
 var
   vJson: string;
-  vDataSet: TClientDataSet;
+  vDataSet: TDataSet;
 begin
   vJson := '{"id":123,"name":"Fabricio Colombo"}';
 
@@ -126,7 +126,7 @@ end;
 procedure TTestDataSetHandler.JsonToDynamicDataSetWithNestedDataSet;
 var
   vJson: string;
-  vDataSet: TClientDataSet;
+  vDataSet: TDataSet;
   vAddresses: TDataSet;
 begin
   vJson := '{' +

@@ -2,7 +2,7 @@ unit TestOldRttiMarshal;
 
 interface
 
-uses TestFramework, SuperObject, OldRttiMarshal, Classes, Contnrs, DbxJsonUtils;
+uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF}SuperObject, OldRttiMarshal, Classes, Contnrs, DbxJsonUtils;
 
 type
   {$M+}
@@ -427,6 +427,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestOldRttiMarshal.Suite);
+  RegisterTest(TTestOldRttiMarshal{$IFNDEF FPC}.Suite{$ENDIF});
 
 end.

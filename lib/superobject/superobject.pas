@@ -80,7 +80,7 @@
   {$MODE OBJFPC}{$H+}
 {$ENDIF}
 
-{$I DelphiRest.inc}
+{$I ..\..\src\DelphiRest.inc}
 
 {$DEFINE SUPER_METHOD}
 {$DEFINE WINDOWSNT_COMPATIBILITY}
@@ -652,12 +652,12 @@ type
     procedure SetDataPtr(const Value: Pointer);
   protected
 {$IFDEF FPC}
-    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} iid: tguid; out obj): longint;{$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
+    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} iid: tguid; out obj): longint;{$IFNDEF MSWINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
 {$ELSE}
     function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
 {$ENDIF}
-    function _AddRef: Integer; virtual; stdcall;
-    function _Release: Integer; virtual; stdcall;
+    function _AddRef: Integer; virtual; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
+    function _Release: Integer; virtual; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 
     function GetO(const path: SOString): ISuperObject;
     procedure PutO(const path: SOString; const Value: ISuperObject);
@@ -790,12 +790,14 @@ type
   SOName = class(TSuperAttribute);
   SODefault = class(TSuperAttribute);
   SOIgnore = class(TCustomAttribute);
+  SOIgnoreSerialize = class(TCustomAttribute);
 
   TSuperRttiContext = class
   private
     class function GetFieldName(r: TRttiField): string;
     class function GetFieldDefault(r: TRttiField; const obj: ISuperObject): ISuperObject;
-    class function GetFieldDisabled(r: TRttiField): boolean;
+    class function GetFieldIgnore(r: TRttiField): boolean;
+    class function GetFieldIgnoreSerialize(r: TRttiField): boolean;
   public
     Context: TRttiContext;
     SerialFromJson: TDictionary<PTypeInfo, TSerialFromJson>;
@@ -4700,12 +4702,12 @@ begin
   end;
 end;
 
-function TSuperObject._AddRef: Integer; stdcall;
+function TSuperObject._AddRef: Integer; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 begin
   Result := InterlockedIncrement(FRefCount);
 end;
 
-function TSuperObject._Release: Integer; stdcall;
+function TSuperObject._Release: Integer; {$IFDEF MSWINDOWS}stdcall; {$ELSE} cdecl; {$ENDIF}
 begin
   Result := InterlockedDecrement(FRefCount);
   if Result = 0 then
@@ -6368,12 +6370,22 @@ begin
   Result := r.Name;
 end;
 
-class function TSuperRttiContext.GetFieldDisabled(r: TRttiField): boolean;
+class function TSuperRttiContext.GetFieldIgnore(r: TRttiField): boolean;
 var
   o: TCustomAttribute;
 begin
   for o in r.GetAttributes do
     if o is SOIgnore then
+      Exit(True);
+  Result := false;
+end;
+
+class function TSuperRttiContext.GetFieldIgnoreSerialize(r: TRttiField): boolean;
+var
+  o: TCustomAttribute;
+begin
+  for o in r.GetAttributes do
+    if (o is SOIgnore) or (o is SOIgnoreSerialize) then
       Exit(True);
   Result := false;
 end;
@@ -6614,7 +6626,7 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
           for f in Context.GetType(Value.AsObject.ClassType).GetFields do
             if f.FieldType <> nil then
             begin
-              if GetFieldDisabled(f) then
+              if GetFieldIgnore(f) then
                 continue;
               v := TValue.Empty;
               Result := FromJson(f.FieldType.Handle, GetFieldDefault(f, obj.AsObject[GetFieldName(f)]), v);
@@ -6682,7 +6694,7 @@ function TSuperRttiContext.FromJson(TypeInfo: PTypeInfo; const obj: ISuperObject
 {$ELSE}
         p := TValueData(Value).FValueData.GetReferenceToRawData;
 {$ENDIF}
-        if GetFieldDisabled(f) then
+        if GetFieldIgnore(f) then
           continue;
         Result := FromJson(f.FieldType.Handle, GetFieldDefault(f, obj.AsObject[GetFieldName(f)]), v);
         if Result then
@@ -7054,8 +7066,8 @@ function TSuperRttiContext.ToJson(var value: TValue; const index: ISuperObject; 
 {$ELSE}
       v := f.GetValue(TValueData(Value).FValueData.GetReferenceToRawData);
 {$ENDIF}
-      if GetFieldDisabled(f) then
-          continue;
+      if GetFieldIgnoreSerialize(f) then
+        continue;
       Result.AsObject[GetFieldName(f)] := ToJson(v, index);
     end;
   end;
@@ -7155,7 +7167,7 @@ var
   Serial: TSerialToJson;
 begin
   if field <> nil then
-    if GetFieldDisabled(field) then
+    if GetFieldIgnoreSerialize(field) then
       exit(nil);
 
   if not SerialToJson.TryGetValue(value.TypeInfo, Serial) then

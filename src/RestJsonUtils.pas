@@ -6,7 +6,7 @@ interface
 
 uses {$IFDEF SUPPORTS_GENERICS}RestJsonGenerics, {$ENDIF}
      {$IFDEF USE_SUPER_OBJECT}RestJsonOldRTTI, {$ENDIF}
-     SysUtils, TypInfo;
+     SysUtils, DateUtils, TypInfo;
 
 type
   EJsonInvalidValue = class(Exception);
@@ -27,9 +27,16 @@ type
     class function UnMarshal(AClassType: TClass; AJsonText: String): TObject;overload;
   end;
 
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+function DelphiToJavaDateTime(const dt: TDateTime): int64;
+function ISO8601DateToJavaDateTime(const str: String; var ms: Int64): Boolean;
+function ISO8601DateToDelphiDateTime(const str: string; var dt: TDateTime): Boolean;
+function DelphiDateTimeToISO8601Date(dt: TDateTime): string;
+
 implementation
 
 {$IFNDEF MACOS}
+{$IFNDEF LINUX}
 uses Windows;
 
 {$IFDEF WINDOWSNT_COMPATIBILITY}
@@ -258,6 +265,7 @@ function SystemTimeToTzSpecificLocalTime(
   lpTimeZoneInformation: PTimeZoneInformation;
   lpUniversalTime, lpLocalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll';
 {$ENDIF WINDOWSNT_COMPATIBILITY}
+{$ENDIF LINUX}
 {$ENDIF MACOS}
 
 {$IFDEF HAS_TTIMEZONE}
@@ -282,6 +290,7 @@ begin
   Result := Round((univTime - UnixDateDelta) * 86400000);
 end;
 {$ELSE}
+{$IFNDEF FPC}
 function JavaToDelphiDateTime(const dt: int64): TDateTime;
 var
   t: TSystemTime;
@@ -299,9 +308,27 @@ begin
   TzSpecificLocalTimeToSystemTime(nil, @t, @t);
   Result := Round((SystemTimeToDateTime(t) - 25569) * 86400000)
 end;
+{$ELSE}
+function JavaToDelphiDateTime(const dt: int64): TDateTime;
+var
+  _local, utc: TSystemTime;
+begin
+  DateTimeToSystemTime(25569 + (dt / 86400000), utc);
+  Result := SystemTimeToDateTime(utc);
+end;
+
+function DelphiToJavaDateTime(const dt: TDateTime): int64;
+var
+  _local, utc, st: TSystemTime;
+begin
+  DateTimeToSystemTime(dt, _local);
+  Result := Round((SystemTimeToDateTime(_local) - 25569) * 86400000);
+end;
+{$ENDIF FPC}
 {$ENDIF}
 
 {$IFDEF UNIX}
+{$IFNDEF FPC}
 function GetTimeBias: integer;
 var
   TimeVal: TTimeVal;
@@ -310,6 +337,13 @@ begin
   fpGetTimeOfDay(@TimeVal, @TimeZone);
   Result := TimeZone.tz_minuteswest;
 end;
+{$ELSE}
+function GetTimeBias: integer;
+begin
+  Result := 0;
+end;
+
+{$ENDIF}
 {$ELSE}
 function GetTimeBias: integer;
 var

@@ -5,10 +5,13 @@ interface
 uses TypInfo, SuperObject, Classes;
 
 type
+  TObjectArray = array of TObject;
+
   TOldRttiMarshal = class
   private
     function ToClass(AObject: TObject): ISuperObject;
     function ToList(AList: TList): ISuperObject;
+    function ToArray(AnArray: TObjectArray): ISuperObject;
     function ToInteger(AObject: TObject; APropInfo: PPropInfo): ISuperObject;
     function ToInt64(AObject: TObject; APropInfo: PPropInfo): ISuperObject;
     function ToFloat(AObject: TObject; APropInfo: PPropInfo): ISuperObject;
@@ -38,7 +41,9 @@ var
   vPropInfo: PPropInfo;
   value: ISuperObject;
   vObjProp: TObject;
+  vObjArrayProp: TObjectArray;
   vAdapter: IJsonListAdapter;
+  vPropType: {$IFNDEF FPC}PTypeInfo{$ELSE}TTypeInfo{$ENDIF};
 begin
   if AObject = nil then
   begin
@@ -77,9 +82,11 @@ begin
 
         value := nil;
 
-        case vPropInfo^.PropType^.Kind of
+        vPropType := vPropInfo^.PropType^;
+
+        case vPropType.Kind of
           tkMethod: ;
-          tkSet, tkInteger, tkEnumeration: value := ToInteger(AObject, vPropInfo);
+          tkSet, tkInteger, tkEnumeration{$IFDEF FPC}, tkBool{$ENDIF}: value := ToInteger(AObject, vPropInfo);
           tkInt64: value := ToInt64(AObject, vPropInfo);
           tkFloat: value := ToFloat(AObject, vPropInfo);
           tkChar, tkWChar: value := ToChar(AObject, vPropInfo); 
@@ -87,7 +94,7 @@ begin
           {$IFDEF UNICODE}
           tkUString,
           {$ENDIF}
-          tkWString: value := ToJsonString(AObject, vPropInfo);
+          tkWString{$IFDEF FPC}, tkAString{$ENDIF}: value := ToJsonString(AObject, vPropInfo);
           tkClass: begin
                       value := nil;
                       vObjProp := GetObjectProp(AObject, vPropInfo);
@@ -99,6 +106,16 @@ begin
                           value := ToClass(vObjProp);
                       end;
                    end;
+          tkDynArray: begin
+                        value := nil;
+                        {$ifdef cpu64}
+                        vObjArrayProp:=TObjectArray(GetInt64Prop(AObject,vPropInfo));
+                        {$else cpu64}
+                        vObjArrayProp:=TObjectArray(PtrInt(GetOrdProp(AObject,vPropInfo)));
+                        {$endif cpu64}
+                        if (Length(vObjArrayProp) > 0) then
+                          value := ToArray(vObjArrayProp);
+                      end;
         end;
 
         if Assigned(value) then
@@ -114,7 +131,7 @@ end;
 
 function TOldRttiMarshal.ToFloat(AObject: TObject; APropInfo: PPropInfo): ISuperObject;
 begin
-  if APropInfo^.PropType^ = System.TypeInfo(TDateTime) then
+  if Pointer(APropInfo^.PropType) = System.TypeInfo(TDateTime) then
     Result := TSuperObject.Create(DelphiToJavaDateTime(GetFloatProp(AObject, APropInfo)))
   else
     Result := TSuperObject.Create(GetFloatProp(AObject, APropInfo));
@@ -131,7 +148,7 @@ var
 begin
   vIntValue := GetOrdProp(AObject, APropInfo);
 
-  if APropInfo^.PropType^ = TypeInfo(Boolean) then
+  if Pointer(APropInfo^.PropType) = System.TypeInfo(Boolean) then
     Result := TSuperObject.Create(Boolean(vIntValue))
   else
     Result := TSuperObject.Create(vIntValue);
@@ -163,6 +180,18 @@ begin
   for i := 0 to AList.Count-1 do
   begin
     Result.AsArray.Add(ToClass(TObject(AList.Items[i])));
+  end;
+end;
+
+function TOldRttiMarshal.ToArray(AnArray: TObjectArray): ISuperObject;
+var
+  i: Integer;
+begin
+  Result := TSuperObject.Create(stArray);
+
+  for i := 0 to Length(AnArray)-1 do
+  begin
+    Result.AsArray.Add(ToClass(AnArray[i]));
   end;
 end;
 

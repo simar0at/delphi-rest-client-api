@@ -157,7 +157,11 @@ uses
   {$IFDEF HAS_UNIT_NETENCODING}
   System.NetEncoding, //allows inlining of EncodeString, DecodeString
   {$ENDIF}
+  {$IFNDEF FPC}
   EncdDecd;
+  {$ELSE}
+  Base64;
+  {$ENDIF}
 
 { TStatusCode }
 
@@ -411,12 +415,20 @@ end;
 
 class function TRestUtils.Base64Decode(const AValue: String): String;
 begin
+  {$IFNDEF FPC}
   Result := EncdDecd.DecodeString(AValue);
+  {$ELSE}
+  Result := DecodeStringBase64(AValue);
+  {$ENDIF}
 end;
 
 class function TRestUtils.Base64Encode(const AValue: String): String;
 begin
+  {$IFNDEF FPC}
   Result := EncdDecd.EncodeString(AValue);
+  {$ELSE}
+  Result := EncodeStringBase64(AValue);
+  {$ENDIF}
 end;
 
 end.

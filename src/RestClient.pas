@@ -107,7 +107,7 @@ type
     OnAfterRequest: TRestOnRequestEvent;
     OnResponse: TRestOnResponseEvent;
 
-    constructor Create(Owner: TComponent); override;
+    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
     property ResponseCode: Integer read GetResponseCode;
@@ -228,7 +228,9 @@ type
     function Post<T>(Entity: TObject): T;overload;
     function Post<T>(Content: string): T;overload;
     function Put<T>(Entity: TObject): T;overload;
+    function Put<T>(Content: string): T;overload;
     function Patch<T>(Entity: TObject): T;overload;
+    function Patch<T>(Content: string): T;overload;
     {$ELSE}
     function Get(AListClass, AItemClass: TClass): TObject;overload;
     function Post(Adapter: IJsonListAdapter): TObject;overload;
@@ -281,7 +283,7 @@ uses StrUtils, Math,
 
 { TRestClient }
 
-constructor TRestClient.Create(Owner: TComponent);
+constructor TRestClient.Create(AOwner: TComponent);
 begin
   inherited;
   {$IFDEF SUPPORTS_GENERICS}
@@ -335,9 +337,9 @@ function TRestClient.DoRequest(Method: TRequestMethod; ResourceRequest: TResourc
 const
   AuthorizationHeader = 'Authorization';
 var
-  vResponse: TStringStream;
+  vResponse: TBytesStream;
   vUrl: String;
-  vResponseString: string;
+  vResponseString: RawByteString;
   vRetryMode: THTTPRetryMode;
   vHeaders: TStrings;
   vEncodedCredentials: string;
@@ -345,7 +347,7 @@ var
 begin
   CheckConnection;
 
-  vResponse := TStringStream.Create('');
+  vResponse := TBytesStream.Create();
   try
     vHeaders := ResourceRequest.GetHeaders;
 
@@ -386,17 +388,16 @@ begin
     else
     begin
       {$IFDEF UNICODE}
-        vResponseString := vResponse.DataString;
-
+        vResponseString := PAnsiChar(vResponse.Bytes);
         {$IFDEF NEXTGEN}
           Result := TEncoding.UTF8.GetString(TEncoding.UTF8.GetBytes(vResponseString.ToCharArray), 0, vResponseString.Length);
         {$ELSE}
           Result := UTF8ToUnicodeString(RawByteString(vResponseString));
         {$ENDIF}
       {$ELSE}
-        vResponseString := vResponse.DataString;
+        vResponseString := PAnsiChar(vResponse.Bytes);
 
-        Result := UTF8Decode(vResponse.DataString);
+        Result := TEncoding.UTF8.GetString(vResponse.Bytes, 0, Length(vResponseString));
       {$ENDIF}
       if Assigned(OnResponse) then
         OnResponse(Self, FHttpConnection.ResponseCode, Result);
@@ -699,8 +700,12 @@ end;
 function TResource.ContentRequest(Content: TStream; Method: TRequestMethod;
   AHandler: TRestResponseHandler): string;
 begin
-  Content.Position := 0;
-  FContent.CopyFrom(Content, Content.Size);
+  FContent.Clear;
+  if assigned(Content) then
+  begin
+    Content.Position := 0;
+    FContent.CopyFrom(Content, Content.Size);
+  end;
   Result := FRestClient.DoRequest(Method, Self, AHandler);
 end;
 
@@ -844,7 +849,6 @@ var
   vResponse: string;
 begin
   vResponse := Post(Content);
-
   if Trim(vResponse) <> '' then
     Result := TJsonUtil.UnMarshal<T>(vResponse)
   else
@@ -865,6 +869,17 @@ begin
     Result := Default(T);
 end;
 
+function TResource.Put<T>(Content: string): T;
+var
+  vResponse: string;
+begin
+  vResponse := Put(Content);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal<T>(vResponse)
+  else
+    Result := Default(T);
+end;
+
 function TResource.Patch<T>(Entity: TObject): T;
 var
   vResponse: string;
@@ -878,6 +893,18 @@ begin
   else
     Result := Default(T);
 end;
+
+function TResource.Patch<T>(Content: string): T;
+var
+  vResponse: string;
+begin
+  vResponse := Patch(Content);
+  if Trim(vResponse) <> '' then
+    Result := TJsonUtil.UnMarshal<T>(vResponse)
+  else
+    Result := Default(T);
+end;
+
 {$ELSE}
 function TResource.Get(AListClass, AItemClass: TClass): TObject;
 var

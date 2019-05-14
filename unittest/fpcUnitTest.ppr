@@ -1,0 +1,18 @@
+program fpcUnitTest;
+
+{$mode objfpc}{$H+}
+
+uses
+  {$IFDEF UNIX}cthreads,{$ENDIF}
+  Interfaces, Forms, GuiTestRunner,
+  BaseTestRest, TestHelloWorld, TestOldRttiMarshal, TestOldRttiUnmarshal,
+  TestRestClient, TestPeople, TestHeader, TestRequestSerialization;
+
+{$R *.res}
+
+begin
+  Application.Initialize;
+  Application.CreateForm(TGuiTestRunner, TestRunner);
+  Application.Run;
+end.
+
