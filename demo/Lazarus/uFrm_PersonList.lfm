@@ -1,0 +1,95 @@
+object Frm_PersonList: TFrm_PersonList
+  Left = 425
+  Height = 338
+  Top = 149
+  Width = 672
+  Caption = 'Person List'
+  ClientHeight = 338
+  ClientWidth = 672
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Position = poScreenCenter
+  LCLVersion = '2.0.2.0'
+  object ListView1: TListView
+    Left = 8
+    Height = 249
+    Top = 8
+    Width = 615
+    Anchors = [akTop, akLeft, akRight]
+    Columns = <    
+      item
+        Caption = 'Id'
+      end    
+      item
+        Caption = 'Name'
+        Width = 230
+      end    
+      item
+        Caption = 'Email'
+        Width = 203
+      end    
+      item
+        Caption = 'Create Date'
+        Width = 120
+      end>
+    RowSelect = True
+    TabOrder = 0
+    ViewStyle = vsReport
+  end
+  object btnAdd: TButton
+    Left = 8
+    Height = 25
+    Top = 264
+    Width = 75
+    Caption = 'Add'
+    OnClick = btnAddClick
+    TabOrder = 1
+  end
+  object btnUpdate: TButton
+    Left = 96
+    Height = 25
+    Top = 264
+    Width = 75
+    Caption = 'Update'
+    OnClick = btnUpdateClick
+    TabOrder = 2
+  end
+  object btnRemove: TButton
+    Left = 184
+    Height = 25
+    Top = 264
+    Width = 75
+    Caption = 'Remove'
+    OnClick = btnRemoveClick
+    TabOrder = 3
+  end
+  object btnRefresh: TButton
+    Left = 277
+    Height = 25
+    Top = 264
+    Width = 75
+    Caption = 'Refresh'
+    OnClick = btnRefreshClick
+    TabOrder = 4
+  end
+  object btnReset: TButton
+    Left = 369
+    Height = 25
+    Top = 263
+    Width = 75
+    Caption = 'Reset'
+    OnClick = btnResetClick
+    TabOrder = 5
+  end
+  object chkEnableCompression: TCheckBox
+    Left = 503
+    Height = 17
+    Top = 263
+    Width = 128
+    Caption = 'Enable Compression'
+    OnClick = chkEnableCompressionClick
+    TabOrder = 6
+  end
+end

@@ -1,0 +1,104 @@
+object Frm_Person: TFrm_Person
+  Left = 441
+  Height = 170
+  Top = 144
+  Width = 417
+  Caption = 'Person'
+  ClientHeight = 170
+  ClientWidth = 417
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Position = poScreenCenter
+  LCLVersion = '2.0.2.0'
+  object Label1: TLabel
+    Left = 58
+    Height = 13
+    Top = 15
+    Width = 9
+    Alignment = taRightJustify
+    Caption = 'Id'
+    ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 39
+    Height = 13
+    Top = 47
+    Width = 28
+    Alignment = taRightJustify
+    Caption = 'Name'
+    ParentColor = False
+  end
+  object Label3: TLabel
+    Left = 10
+    Height = 13
+    Top = 103
+    Width = 57
+    Alignment = taRightJustify
+    Caption = 'Create Date'
+    ParentColor = False
+  end
+  object Label4: TLabel
+    Left = 42
+    Height = 13
+    Top = 74
+    Width = 25
+    Alignment = taRightJustify
+    Caption = 'Email'
+    ParentColor = False
+  end
+  object edId: TEdit
+    Left = 72
+    Height = 21
+    Top = 8
+    Width = 121
+    ParentColor = True
+    ReadOnly = True
+    TabStop = False
+    TabOrder = 0
+  end
+  object edName: TEdit
+    Left = 72
+    Height = 21
+    Top = 40
+    Width = 337
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 1
+  end
+  object btnOK: TButton
+    Left = 72
+    Height = 25
+    Top = 128
+    Width = 75
+    Caption = 'Confirm'
+    ModalResult = 1
+    TabOrder = 4
+  end
+  object btnCancel: TButton
+    Left = 176
+    Height = 25
+    Top = 128
+    Width = 75
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 5
+  end
+  object edEmail: TEdit
+    Left = 72
+    Height = 21
+    Top = 67
+    Width = 337
+    Anchors = [akTop, akLeft, akRight]
+    TabOrder = 2
+  end
+  object edCreateDate: TEdit
+    Left = 72
+    Height = 21
+    Top = 96
+    Width = 121
+    ParentColor = True
+    ReadOnly = True
+    TabOrder = 3
+  end
+end

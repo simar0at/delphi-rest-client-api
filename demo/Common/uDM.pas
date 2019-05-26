@@ -1,5 +1,7 @@
 unit uDM;
 
+{$MODE Delphi}
+
 interface
 
 uses
@@ -24,6 +26,6 @@ implementation
 
 {%CLASSGROUP 'FMX.Controls.TControl'}
 
-{$R *.dfm}
+{$R *.lfm}
 
 end.
