@@ -26,6 +26,6 @@ implementation
 
 {%CLASSGROUP 'FMX.Controls.TControl'}
 
-{$R *.lfm}
+{$R *.dfm}
 
 end.

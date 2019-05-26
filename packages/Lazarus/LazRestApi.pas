@@ -9,7 +9,7 @@ interface
 
 uses
   RestClient, RestUtils, superobject, superxmlparser, RestJsonUtils, 
-  RestJsonOldRTTI, DataSetUtils, RestRegister, Wcrypt2, OldRttiMarshal, 
+  RestJsonOldRTTI, DataSetUtils, RestRegister, OldRttiMarshal, 
   OldRttiUnMarshal, HttpConnectionFactory, HttpConnection, LazarusPackageIntf;
 
 implementation

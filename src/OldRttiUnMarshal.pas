@@ -134,15 +134,16 @@ begin
                                       end;
                                    end;
                           tkDynArray: begin
-                                        vArrayTypeData := GetTypeData(GetTypeData(@vPropType).elType2);
+                                        vArrayTypeData := GetTypeData(GetTypeData(@vPropType)^.elType2);
                                         vObjArrayProp := FromArray(vArrayTypeData^.ClassType, AJSONValue.O[vPropName]);
                                         if (Length(vObjArrayProp) > 0) then
                                         begin
                                           vDynArray:=Pointer(@vObjArrayProp[0])-sizeof(TDynArray);
-                                          InterLockedIncrement(vDynArray^.refcount);
                                           {$ifdef cpu64}
+                                          InterLockedIncrement64(vDynArray^.refcount);
                                           SetInt64Prop(Result,vPropInfo,Int64(vObjArrayProp));
                                           {$else cpu64}
+                                          InterLockedIncrement(vDynArray^.refcount);
                                           SetOrdProp(Result,vPropInfo,PtrInt(vObjArrayProp));
                                           {$endif cpu64}
                                         end;

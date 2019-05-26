@@ -8,7 +8,8 @@
       <Unit0>
         <Filename Value="DelphiRestDemo.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="20"/>
+        <IsVisibleTab Value="True"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -18,12 +19,10 @@
         <ComponentName Value="Frm_Person"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="26"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="18"/>
         <CursorPos X="43" Y="18"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
+        <UsageCount Value="24"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
@@ -32,20 +31,19 @@
         <ComponentName Value="DM"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="DataModule"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2"/>
+        <CursorPos X="7" Y="29"/>
+        <UsageCount Value="24"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\Common\Person.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="30"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="15"/>
         <CursorPos X="2" Y="15"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="24"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
@@ -54,153 +52,63 @@
         <ComponentName Value="Frm_PersonList"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="43"/>
         <CursorPos X="35" Y="56"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
+        <UsageCount Value="24"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
       <Unit5>
         <Filename Value="C:\Users\osiam\AppData\Local\lazarus\onlinepackagemanager\packages\Indy10\System\IdStack.pas"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="944"/>
         <CursorPos X="38" Y="945"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
         <Filename Value="C:\Users\osiam\AppData\Local\lazarus\onlinepackagemanager\packages\Indy10\Core\IdIOHandlerStack.pas"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="500"/>
         <CursorPos Y="526"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit6>
       <Unit7>
         <Filename Value="..\..\src\RestClient.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="992"/>
         <CursorPos X="33" Y="1017"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
       <Unit8>
         <Filename Value="..\..\src\RestJsonUtils.pas"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1042"/>
         <CursorPos X="32" Y="1054"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
       <Unit9>
         <Filename Value="..\..\src\RestJsonOldRTTI.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="32" Y="23"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit9>
       <Unit10>
         <Filename Value="..\..\src\OldRttiMarshal.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="20"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit10>
     </Units>
-    <JumpHistory Count="21" HistoryIndex="20">
+    <JumpHistory Count="1">
       <Position1>
-        <Filename Value="uFrm_PersonList.pas"/>
-        <Caret TopLine="10"/>
+        <Filename Value="DelphiRestDemo.lpr"/>
       </Position1>
-      <Position2>
-        <Filename Value="C:\Users\osiam\AppData\Local\lazarus\onlinepackagemanager\packages\Indy10\System\IdStack.pas"/>
-        <Caret Line="945" Column="38" TopLine="944"/>
-      </Position2>
-      <Position3>
-        <Filename Value="uFrm_PersonList.pas"/>
-        <Caret TopLine="139"/>
-      </Position3>
-      <Position4>
-        <Filename Value="uFrm_PersonList.pas"/>
-        <Caret Line="56" Column="35" TopLine="43"/>
-      </Position4>
-      <Position5>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="194" Column="23" TopLine="180"/>
-      </Position5>
-      <Position6>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1035" TopLine="1029"/>
-      </Position6>
-      <Position7>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1057" TopLine="1030"/>
-      </Position7>
-      <Position8>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="764" TopLine="748"/>
-      </Position8>
-      <Position9>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="765" TopLine="748"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="766" TopLine="748"/>
-      </Position10>
-      <Position11>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1003" TopLine="987"/>
-      </Position11>
-      <Position12>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1004" TopLine="987"/>
-      </Position12>
-      <Position13>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1005" TopLine="987"/>
-      </Position13>
-      <Position14>
-        <Filename Value="..\..\src\RestClient.pas"/>
-        <Caret Line="1017" Column="33" TopLine="992"/>
-      </Position14>
-      <Position15>
-        <Filename Value="..\..\src\RestJsonUtils.pas"/>
-        <Caret Line="22" Column="20"/>
-      </Position15>
-      <Position16>
-        <Filename Value="..\..\src\RestJsonUtils.pas"/>
-        <Caret Line="1054" Column="32" TopLine="1042"/>
-      </Position16>
-      <Position17>
-        <Filename Value="..\..\src\RestJsonOldRTTI.pas"/>
-        <Caret Line="12" Column="20"/>
-      </Position17>
-      <Position18>
-        <Filename Value="..\..\src\RestJsonOldRTTI.pas"/>
-        <Caret Line="23" Column="32"/>
-      </Position18>
-      <Position19>
-        <Filename Value="..\..\src\OldRttiMarshal.pas"/>
-        <Caret Line="18" Column="25" TopLine="4"/>
-      </Position19>
-      <Position20>
-        <Filename Value="..\..\src\OldRttiMarshal.pas"/>
-        <Caret Line="149" Column="29" TopLine="140"/>
-      </Position20>
-      <Position21>
-        <Filename Value="..\..\src\OldRttiMarshal.pas"/>
-        <Caret Line="10" Column="14"/>
-      </Position21>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

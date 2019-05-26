@@ -53,7 +53,6 @@ begin
   FTestClass._name:='_name';
   FTestClass.AddTestClass( TTestClass.Create(nil));
   FStringStream := TStringStream.Create('');
-  TClass.
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);

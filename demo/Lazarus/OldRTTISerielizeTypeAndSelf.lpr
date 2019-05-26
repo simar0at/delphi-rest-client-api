@@ -7,8 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, oldrttiserializemainunit, testclass
-  { you can add units after this };
+  Forms, oldrttiserializemainunit, testclass, OldRttiUnMarshal, OldRttiMarshal;
 
 {$R *.res}
 
