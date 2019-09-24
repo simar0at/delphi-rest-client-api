@@ -41,3 +41,4 @@ Servers
 *.dsk
 lib
 backup
+*.dbg
