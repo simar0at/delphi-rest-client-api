@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <PathDelim Value="\"/>
     <Name Value="LazRestApi"/>
     <Type Value="RunAndDesignTime"/>
@@ -71,16 +71,11 @@
         <UnitName Value="HttpConnection"/>
       </Item12>
     </Files>
-    <RequiredPkgs Count="3">
+    <CompatibilityMode Value="True"/>
+    <RequiredPkgs Count="1">
       <Item1>
-        <PackageName Value="sparta_generics"/>
-      </Item1>
-      <Item2>
         <PackageName Value="indylaz"/>
-      </Item2>
-      <Item3>
-        <PackageName Value="LCL"/>
-      </Item3>
+      </Item1>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
