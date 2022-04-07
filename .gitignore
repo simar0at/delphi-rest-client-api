@@ -39,3 +39,6 @@ bin/*
 RemoteSystemsTempFiles
 Servers
 *.dsk
+lib
+backup
+*.dbg

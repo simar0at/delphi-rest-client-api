@@ -28,12 +28,14 @@ implementation
 
 uses RestJsonUtils{$IFDEF FPC}, Contnrs{$ENDIF};
 
+{$IFDEF FPC}
 type
   PDynArray = ^TDynArray;
   TDynArray = packed record
    refcount : ptrint;
    high : tdynarrayindex;
   end;
+{$ENDIF}
 
 { TOldRttiUnMarshal }
 
@@ -58,7 +60,7 @@ var
   vInt64Value: Int64;
   vObjProp: TObject;
   vObjArrayProp: TObjectArray;
-  vDynArray: PDynArray;
+  {$IFDEF FPC}vDynArray: PDynArray;{$ENDIF}
   vObjClass: TClass;
   vPropType: {$IFNDEF FPC}PTypeInfo{$ELSE}TTypeInfo{$ENDIF};
 begin
@@ -133,20 +135,23 @@ begin
                                         SetObjectProp(Result, vPropInfo, vObjProp);
                                       end;
                                    end;
+                          {$IFDEF FPC}
                           tkDynArray: begin
-                                        vArrayTypeData := GetTypeData(GetTypeData(@vPropType).elType2);
+                                        vArrayTypeData := GetTypeData(GetTypeData(@vPropType)^.elType2);
                                         vObjArrayProp := FromArray(vArrayTypeData^.ClassType, AJSONValue.O[vPropName]);
                                         if (Length(vObjArrayProp) > 0) then
                                         begin
                                           vDynArray:=Pointer(@vObjArrayProp[0])-sizeof(TDynArray);
-                                          InterLockedIncrement(vDynArray^.refcount);
                                           {$ifdef cpu64}
+                                          InterLockedIncrement64(vDynArray^.refcount);
                                           SetInt64Prop(Result,vPropInfo,Int64(vObjArrayProp));
                                           {$else cpu64}
+                                          InterLockedIncrement(vDynArray^.refcount);
                                           SetOrdProp(Result,vPropInfo,PtrInt(vObjArrayProp));
                                           {$endif cpu64}
                                         end;
                                       end;
+                          {$ENDIF}
                         end;
                       except
                         on E: Exception do

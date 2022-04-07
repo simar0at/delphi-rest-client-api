@@ -1,5 +1,7 @@
 unit Person;
 
+{$MODE Delphi}
+
 (*
 
    IMPORTANT WARNING (for older versions like Delphi 7):

@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Debug"/>
+    <Units Count="18">
+      <Unit0>
+        <Filename Value="OldRTTISerielizeTypeAndSelf.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="-1"/>
+        <CursorPos X="-1" Y="-1"/>
+        <UsageCount Value="62"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="oldrttiserializemainunit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="24"/>
+        <CursorPos X="15" Y="39"/>
+        <UsageCount Value="62"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="testclass.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="26"/>
+        <CursorPos Y="54"/>
+        <UsageCount Value="62"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="C:\lazarus\lcl\include\customform.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1003"/>
+        <CursorPos Y="1019"/>
+        <UsageCount Value="6"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\streams.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="169"/>
+        <CursorPos Y="185"/>
+        <UsageCount Value="6"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\..\lib\superobject\superxmlparser.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="114"/>
+        <CursorPos X="28" Y="114"/>
+        <UsageCount Value="6"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\lib\superobject\superobject.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3695"/>
+        <CursorPos Y="3711"/>
+        <UsageCount Value="31"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\src\OldRttiMarshal.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="25"/>
+        <CursorPos X="48" Y="25"/>
+        <UsageCount Value="31"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\src\JsonListAdapter.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="8"/>
+        <UsageCount Value="31"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\src\OldRttiUnMarshal.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="30"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\packages\fcl-base\src\contnrs.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="55"/>
+        <CursorPos X="3" Y="74"/>
+        <UsageCount Value="30"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="C:\lazarus\lcl\lresources.pp"/>
+        <UnitName Value="LResources"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="5287"/>
+        <CursorPos X="34" Y="5311"/>
+        <UsageCount Value="30"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\classesh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1455"/>
+        <CursorPos X="15" Y="1470"/>
+        <UsageCount Value="6"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\writer.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="3" Y="615"/>
+        <UsageCount Value="30"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\compon.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="451"/>
+        <CursorPos X="27" Y="454"/>
+        <UsageCount Value="6"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\classes\reader.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1326"/>
+        <CursorPos X="56" Y="1304"/>
+        <UsageCount Value="30"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\inc\objpash.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="65"/>
+        <CursorPos X="8" Y="79"/>
+        <UsageCount Value="30"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="C:\lazarus\fpc\3.0.4\source\rtl\objpas\typinfo.pp"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="34" Y="197"/>
+        <UsageCount Value="30"/>
+      </Unit17>
+    </Units>
+    <JumpHistory Count="4" HistoryIndex="3">
+      <Position1>
+        <Filename Value="oldrttiserializemainunit.pas"/>
+        <Caret Line="51" Column="72" TopLine="33"/>
+      </Position1>
+      <Position2>
+        <Filename Value="oldrttiserializemainunit.pas"/>
+        <Caret Line="39" Column="15" TopLine="24"/>
+      </Position2>
+      <Position3>
+        <Filename Value="oldrttiserializemainunit.pas"/>
+        <Caret Line="47" Column="22" TopLine="38"/>
+      </Position3>
+      <Position4>
+        <Filename Value="oldrttiserializemainunit.pas"/>
+        <Caret Line="39" Column="25" TopLine="24"/>
+      </Position4>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="..\..\lib\superobject\superxmlparser.pas"/>
+        <Line Value="151"/>
+      </Item1>
+    </BreakPoints>
+    <Watches Count="5">
+      <Item1>
+        <Expression Value="vArrayTypeData^.elType2"/>
+      </Item1>
+      <Item2>
+        <Expression Value="vPropType.Kind"/>
+      </Item2>
+      <Item3>
+        <Expression Value="ATypeInfo^.elSize"/>
+      </Item3>
+      <Item4>
+        <Expression Value="l"/>
+      </Item4>
+      <Item5>
+        <Expression Value="AList[0]"/>
+      </Item5>
+    </Watches>
+  </Debugging>
+</CONFIG>

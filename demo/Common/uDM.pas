@@ -1,5 +1,7 @@
 unit uDM;
 
+{$MODE Delphi}
+
 interface
 
 uses
