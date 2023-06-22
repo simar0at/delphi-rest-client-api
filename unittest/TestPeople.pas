@@ -248,7 +248,7 @@ end;
 
 procedure TTestPeople.UpdatePerson;
 const
-  UpdatePerson = '{"id":3,"name":"%s","email":"%s"}';
+  UpdatePersonJSON = '{"id":3,"name":"%s","email":"%s"}';
   Name = 'Joseph Kirk';
   EMail = 'kirk@hotmail.com';
 var
@@ -257,7 +257,7 @@ var
 begin
   vStream := TStringStream.Create(EmptyStr);
   try
-    vStream.WriteString(Format(UpdatePerson,[Name, EMail]));
+    vStream.WriteString(Format(UpdatePersonJSON,[Name, EMail]));
 
     vResult := RestClient.Resource(CONTEXT_PATH + 'person')
                          .Accept(RestUtils.MediaType_Json)
@@ -274,7 +274,7 @@ end;
 
 procedure TTestPeople.UpdatePersonFromString;
 const
-  UpdatePerson = '{"id":3,"name":"%s","email":"%s"}';
+  UpdatePersonJSON = '{"id":3,"name":"%s","email":"%s"}';
   Name = 'Joseph Kirk';
   EMail = 'kirk@hotmail.com';
 var
@@ -283,7 +283,7 @@ begin
   vResult := RestClient.Resource(CONTEXT_PATH + 'person')
                        .Accept(RestUtils.MediaType_Json)
                        .ContentType(RestUtils.MediaType_Json)
-                       .Put(Format(UpdatePerson,[Name, EMail]));
+                       .Put(Format(UpdatePersonJSON,[Name, EMail]));
 
   CheckEquals(201, RestClient.ResponseCode);
 

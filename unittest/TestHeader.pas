@@ -48,7 +48,7 @@ begin
                          .AcceptLanguage(RestUtils.LOCALE_US)
                          .Get;
 
-  CheckEquals('["pt_BR","en_US"]', vResponse);
+  CheckEquals('["'+RestUtils.LOCALE_PORTUGUESE_BRAZILIAN.Replace('-', '_')+'","'+RestUtils.LOCALE_US.Replace('-', '_')+'"]', vResponse);
 end;
 
 procedure TTestHeader.MultipleAcceptTypes;
@@ -123,8 +123,8 @@ function TTestHeader.CreateHttpServer: TIdHTTPServer;
 begin
   FHttpServer := TIdHTTPServer.Create(nil);
   FHttpServer.DefaultPort := 9999;
-  FHttpServer.OnCommandGet := OnCommandGet;
-  FHttpServer.OnHeadersAvailable := OnHeadersAvailable;
+  FHttpServer.OnCommandGet := @OnCommandGet;
+  FHttpServer.OnHeadersAvailable := @OnHeadersAvailable;
   FHttpServer.Active := True;
 
   Result := FHttpServer;
@@ -165,7 +165,7 @@ begin
                          .AcceptLanguage(RestUtils.LOCALE_PORTUGUESE_BRAZILIAN)
                          .Get;
 
-  CheckEquals('["pt_BR"]', vResponse);
+  CheckEquals('["'+RestUtils.LOCALE_PORTUGUESE_BRAZILIAN.Replace('-', '_')+'"]', vResponse);
 end;
 
 procedure TTestHeader.OneHeaderParams;

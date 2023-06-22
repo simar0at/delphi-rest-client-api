@@ -15,7 +15,7 @@ type
     email: String;
     createDate: TDateTime;
 
-    class function NewFrom(Id: Integer; Name, EMail: String): TPerson;
+    class function NewFrom(aId: Integer; aName, aEMail: String): TPerson;
 
     function ToString: string;{$IFDEF DELPHI_2009_UP}override;{$ENDIF}
   end;
@@ -41,12 +41,12 @@ implementation
 
 { TPerson }
 
-class function TPerson.NewFrom(Id: Integer; Name, EMail: String): TPerson;
+class function TPerson.NewFrom(aId: Integer; aName, aEMail: String): TPerson;
 begin
   Result := TPerson.Create;
-  Result.Id := Id;
-  Result.Name := Name;
-  Result.EMail := EMail;
+  Result.Id := aId;
+  Result.Name := aName;
+  Result.EMail := aEMail;
   Result.createDate := Now;
 end;
 

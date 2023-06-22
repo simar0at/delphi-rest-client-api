@@ -2,7 +2,7 @@ unit TestOldRttiUnmarshal;
 
 interface
 
-uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF} Contnrs, Classes, OldRttiUnMarshal, DbxJsonUtils;
+uses {$IFNDEF FPC}TestFramework, DbxJsonUtils, {$ELSE}fpcunit, testregistry, {$ENDIF} Contnrs, Classes, OldRttiUnMarshal;
 
 type
   {$M+}
@@ -104,7 +104,7 @@ type
 
 implementation
 
-uses Math, SysUtils, DateUtils, RestJsonUtils, RestJsonDateTimeUtils ;
+uses Math, SysUtils, DateUtils, RestJsonUtils;
 
 { TTestOldRttiUnmarshal }
 
