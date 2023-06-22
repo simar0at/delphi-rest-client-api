@@ -37,7 +37,7 @@ implementation
 
 {$IFNDEF MACOS}
 {$IFNDEF LINUX}
-uses Windows;
+uses Windows, superdate;
 
 {$IFDEF WINDOWSNT_COMPATIBILITY}
 function DayLightCompareDate(const date: PSystemTime;
@@ -310,19 +310,13 @@ begin
 end;
 {$ELSE}
 function JavaToDelphiDateTime(const dt: int64): TDateTime;
-var
-  _local, utc: TSystemTime;
 begin
-  DateTimeToSystemTime(25569 + (dt / 86400000), utc);
-  Result := SystemTimeToDateTime(utc);
+  Result := superdate.JavaToDelphiDateTime(dt);
 end;
 
 function DelphiToJavaDateTime(const dt: TDateTime): int64;
-var
-  _local, utc, st: TSystemTime;
 begin
-  DateTimeToSystemTime(dt, _local);
-  Result := Round((SystemTimeToDateTime(_local) - 25569) * 86400000);
+  Result := superdate.DelphiToJavaDateTime(dt);
 end;
 {$ENDIF FPC}
 {$ENDIF}
