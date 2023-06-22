@@ -85,7 +85,7 @@ begin
   {$ELSE}
   ExpectException(ECustomCreateConnectionException);
   {$ENDIF}
-  FRest.OnCustomCreateConnection := OnCreateCustomConnectionNull;
+  FRest.OnCustomCreateConnection := @OnCreateCustomConnectionNull;
   FRest.ConnectionType := hctCustom;
 end;
 
@@ -138,7 +138,7 @@ end;
 
 procedure TTestRestClient.UsingCustomConnection;
 begin
-  FRest.OnCustomCreateConnection := OnCreateCustomConnection;
+  FRest.OnCustomCreateConnection := @OnCreateCustomConnection;
   FRest.ConnectionType := hctCustom;
 
   CheckTrue(FCustomCreateConnectionCalled);

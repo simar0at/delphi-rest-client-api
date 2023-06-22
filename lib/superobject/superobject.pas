@@ -869,7 +869,7 @@ var
   SODefaultIntNull: integer = -1;
 
 implementation
-uses sysutils, RestJsonDateTimeUtils, RestJsonUtils, variants,
+uses sysutils, RestJsonUtils, variants,
 {$IFDEF UNIX}
   baseunix, unix, DateUtils
 {$ELSE}

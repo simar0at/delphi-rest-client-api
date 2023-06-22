@@ -2,7 +2,7 @@ unit TestOldRttiMarshal;
 
 interface
 
-uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF}SuperObject, OldRttiMarshal, Classes, Contnrs, DbxJsonUtils;
+uses {$IFNDEF FPC}TestFramework, DbxJsonUtils, {$ELSE}fpcunit, testregistry, {$ENDIF}SuperObject, OldRttiMarshal, Classes, Contnrs;
 
 type
   {$M+}

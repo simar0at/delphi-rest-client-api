@@ -5,7 +5,7 @@ interface
 {$I DelphiRest.inc}
 
 uses IdHTTP, HttpConnection, Classes, RestUtils, IdCompressorZLib, SysUtils,
-     IdSSLOpenSSL, IdStack, RestException;
+     IdOpenSSLIOHandlerClient, IdStack, RestException;
 
 type
   TIdHTTP = class(idHTTP.TIdHTTP)
@@ -20,20 +20,6 @@ type
     FEnabledCompression: Boolean;
     FVerifyCert: boolean;
     procedure CancelRequest;
-    ///
-    ///  Delphi XE2 and newer
-    ///
-    function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean; ADepth, AError: Integer): Boolean; overload;
-    {$IFNDEF DELPHI_10TOKYO_UP}
-    ///
-    ///  Delphi 2007
-    ///
-    function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean): Boolean;overload;
-    ///
-    ///  Delphi 2010 and XE
-    ///
-    function IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean; ADepth: Integer): Boolean;overload;
-    {$ENDIF}
   public
     OnConnectionLost: THTTPConnectionLostEvent;
 
@@ -72,8 +58,7 @@ type
 implementation
 
 uses
-  ProxyUtils
-  {$IFDEF UNIX}, IdSSLOpenSSLHeaders{$ENDIF};
+  ProxyUtils, IdOpenSSLVersion;
 
 { THttpConnectionIndy }
 
@@ -103,32 +88,19 @@ end;
 
 constructor THttpConnectionIndy.Create;
 var
-  ssl: TIdSSLIOHandlerSocketOpenSSL;
+  ssl: TIdOpenSSLIOHandlerClient;
   ProxyServerIP: string;
 begin
   {$IFDEF UNIX}
   IdOpenSSLSetLoadSymLinksFirst(False);
   {$ENDIF}
   FIdHttp := TIdHTTP.Create(nil);
-  ssl := TIdSSLIOHandlerSocketOpenSSL.Create(FIdHttp);
-  ssl.OnVerifyPeer := IdSSLIOHandlerSocketOpenSSL1VerifyPeer;
+  ssl := TIdOpenSSLIOHandlerClient.Create(FIdHttp);
+  ssl.Options.VerifyHostName:=FVerifyCert;
+  ssl.Options.VerifyServerCertificate:=FVerifyCert;
 
-  {$if defined(DELPHI_7) or defined(DELPHI_2007) or
-       defined(DELPHI_2009) or defined(DELPHI_2010)}
-    ssl.SSLOptions.Method := sslvTLSv1;
-  {$ifend}
-
-  {$if defined(DELPHI_XE) or defined(DELPHI_XE2)}
-    ssl.SSLOptions.SSLVersions := [sslvTLSv1];
-  {$ifend}
-
-  {$IFDEF DELPHI_XE3_UP}
-    ssl.SSLOptions.SSLVersions := [sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
-  {$ENDIF}
-
-  {$IFDEF FPC}
-    ssl.SSLOptions.SSLVersions := [sslvTLSv1,sslvTLSv1_1,sslvTLSv1_2];
-  {$ENDIF}
+  ssl.Options.TLSVersionMinimum:=TLSv1_2;
+  ssl.Options.TLSVersionMaximum:=TLSv1_3;
 
   FIdHttp.IOHandler := ssl;
   FIdHttp.HandleRedirects := True;
@@ -237,29 +209,6 @@ end;
 function THttpConnectionIndy.GetVerifyCert: boolean;
 begin
   result := FVerifyCert;
-end;
-
-{$IFNDEF DELPHI_10TOKYO_UP}
-function THttpConnectionIndy.IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate: TIdX509; AOk: Boolean): Boolean;
-begin
-  Result := IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate, AOk, -1);
-end;
-
-function THttpConnectionIndy.IdSSLIOHandlerSocketOpenSSL1VerifyPeer(
-  Certificate: TIdX509; AOk: Boolean; ADepth: Integer): Boolean;
-begin
-  Result := IdSSLIOHandlerSocketOpenSSL1VerifyPeer(Certificate, AOk, ADepth, -1);
-end;
-{$ENDIF}
-
-function THttpConnectionIndy.IdSSLIOHandlerSocketOpenSSL1VerifyPeer(
-  Certificate: TIdX509; AOk: Boolean; ADepth, AError: Integer): Boolean;
-begin
-  result := AOk;
-  if not FVerifyCert then
-  begin
-    result := True;
-  end;
 end;
 
 procedure THttpConnectionIndy.Patch(AUrl: string; AContent, AResponse: TStream);
