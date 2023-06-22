@@ -176,8 +176,8 @@ type
 
     function Accept(AcceptType: String): TResource;
     function Async(const Value: Boolean = True): TResource;
-    function Authorization(Authorization: String): TResource;
-    function ContentType(ContentType: String): TResource;
+    function Authorization(aAuthorization: String): TResource;
+    function ContentType(aContentType: String): TResource;
     function AcceptLanguage(Language: String): TResource;
 
     function Header(Name: String; Value: string): TResource;
@@ -692,9 +692,9 @@ begin
   Result := Self;
 end;
 
-function TResource.Authorization(Authorization: String): TResource;
+function TResource.Authorization(aAuthorization: String): TResource;
 begin
-  Result := Header('Authorization', Authorization);
+  Result := Header('Authorization', aAuthorization);
 end;
 
 function TResource.ContentRequest(Content: TStream; Method: TRequestMethod;
@@ -721,9 +721,9 @@ begin
     Result := nil;
 end;
 
-function TResource.ContentType(ContentType: String): TResource;
+function TResource.ContentType(aContentType: String): TResource;
 begin
-  FContentTypes := ContentType;
+  FContentTypes := aContentType;
 
   Result := Self;
 end;

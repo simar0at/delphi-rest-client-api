@@ -9,7 +9,8 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <OtherUnitFiles Value="..\..\src;..\..\lib;..\..\lib\superobject"/>
+        <IncludeFiles Value="..\..\lib\OpenSSL"/>
+        <OtherUnitFiles Value="..\..\src;..\..\lib;..\..\lib\superobject;..\..\lib\OpenSSL;..\..\lib\OpenSSL\dynamic"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
