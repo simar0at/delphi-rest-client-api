@@ -6,7 +6,6 @@ unittest/Debug
 unittest/UnitTest.res
 unittest/UnitTest.dsk
 unittest/UnitTest.dof
-unittest/UnitTest.exe
 unittest/UnitTest.map
 unittest/UnitTest.stat
 unittest/target
@@ -40,5 +39,5 @@ RemoteSystemsTempFiles
 Servers
 *.dsk
 lib
-backup
+**/backup
 *.dbg
