@@ -1,5 +1,9 @@
 unit supertimezone;
 
+{$IFDEF FPC}
+{$mode objfpc}{$H+}
+{$ENDIF}
+
 interface
 
 uses
@@ -40,7 +44,7 @@ type
     class constructor Init;
     class destructor Finish;
     class var FCacheCS: TRTLCriticalSection;
-    class var FCache: TObjectDictionary<string, TSuperTimeZone>;
+    class var FCache: {$IFDEF FPC}specialize {$ENDIF}TObjectDictionary<string, TSuperTimeZone>;
     class function GetSuperTimeZoneInstance(const Name: string): TSuperTimeZone; static;
     class function GetLocalSuperTimeZoneInstance: TSuperTimeZone; static;
   public
@@ -218,7 +222,7 @@ end;
 class constructor TSuperTimeZone.Init;
 begin
   {$IFNDEF FPC}InitializeCriticalSection(FCacheCS);{$ELSE}InitCriticalSection(FCacheCS);{$ENDIF}
-  FCache := TObjectDictionary<string, TSuperTimeZone>.Create([doOwnsValues]);
+  FCache := {$IFDEF FPC}specialize {$ENDIF}TObjectDictionary<string, TSuperTimeZone>.Create([doOwnsValues]);
 end;
 
 class destructor TSuperTimeZone.Finish;

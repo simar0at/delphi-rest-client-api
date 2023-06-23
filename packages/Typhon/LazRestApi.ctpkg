@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <PathDelim Value="\"/>
+    <Name Value="LazRestApi"/>
+    <Type Value="RunAndDesignTime"/>
+    <Author Value="Fabricio Colombo, Thomas Erlang, Omar Siam"/>
+    <HasRegisterProc Value="True"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\..\lib\OpenSSL"/>
+        <OtherUnitFiles Value="..\..\src;..\..\lib;..\..\lib\superobject;..\..\lib\OpenSSL;..\..\lib\OpenSSL\dynamic"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+        </SyntaxOptions>
+      </Parsing>
+    </CompilerOptions>
+    <Description Value="Delphi REST Client API: Model REST JSON as ObjectPascal Classes."/>
+    <Version Minor="5" Build="1"/>
+    <Files Count="12">
+      <Item1>
+        <Filename Value="..\..\src\RestClient.pas"/>
+        <UnitName Value="RestClient"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\..\src\RestUtils.pas"/>
+        <UnitName Value="RestUtils"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\..\lib\superobject\superobject.pas"/>
+        <UnitName Value="superobject"/>
+      </Item3>
+      <Item4>
+        <Filename Value="..\..\lib\superobject\superxmlparser.pas"/>
+        <UnitName Value="superxmlparser"/>
+      </Item4>
+      <Item5>
+        <Filename Value="..\..\src\RestJsonUtils.pas"/>
+        <UnitName Value="RestJsonUtils"/>
+      </Item5>
+      <Item6>
+        <Filename Value="..\..\src\RestJsonOldRTTI.pas"/>
+        <UnitName Value="RestJsonOldRTTI"/>
+      </Item6>
+      <Item7>
+        <Filename Value="..\..\src\DataSetUtils.pas"/>
+        <UnitName Value="DataSetUtils"/>
+      </Item7>
+      <Item8>
+        <Filename Value="..\..\src\RestRegister.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="RestRegister"/>
+      </Item8>
+      <Item9>
+        <Filename Value="..\..\src\OldRttiMarshal.pas"/>
+        <UnitName Value="OldRttiMarshal"/>
+      </Item9>
+      <Item10>
+        <Filename Value="..\..\src\OldRttiUnMarshal.pas"/>
+        <UnitName Value="OldRttiUnMarshal"/>
+      </Item10>
+      <Item11>
+        <Filename Value="..\..\src\HttpConnectionFactory.pas"/>
+        <UnitName Value="HttpConnectionFactory"/>
+      </Item11>
+      <Item12>
+        <Filename Value="..\..\src\HttpConnection.pas"/>
+        <UnitName Value="HttpConnection"/>
+      </Item12>
+    </Files>
+    <CompatibilityMode Value="True"/>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="pl_Indy"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

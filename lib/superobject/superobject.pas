@@ -1397,7 +1397,7 @@ begin
         if TVarRec(Args[j]).VInterface = nil then
           Add(nil) else
           if IInterface(TVarRec(Args[j]).VInterface).QueryInterface(ISuperObject, intf) = 0 then
-            Add(ISuperObject(intf)) else
+            Add(intf as ISuperObject) else
             Add(nil);
       vtPointer :
         if TVarRec(Args[j]).VPointer = nil then

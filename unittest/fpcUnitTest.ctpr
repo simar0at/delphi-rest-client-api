@@ -1,20 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <PathDelim Value="\"/>
     <General>
+      <Flags>
+        <CompatibilityMode Value="True"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="fpcUnitTest"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
       <Icon Value="0"/>
     </General>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <Target>
+            <Filename Value="fpcUnitTest"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjDir);$(ProjDir)\..;$(ProjOutDir);$(ProjDir)\..\src;$(ProjDir)\..\lib\OpenSSL"/>
+            <OtherUnitFiles Value="$(ProjDir)\..\src;$(ProjDir)\..\lib;$(ProjDir)\..\lib\superobject;$(ProjDir)\..\lib\OpenSSL;$(ProjDir)\..\lib\OpenSSL\dynamic"/>
+            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <SyntaxMode Value="DelphiUnicode"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <RunWithoutDebug Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CustomOptions Value="-FcUTF8"/>
+            <OtherDefines Count="1">
+              <Define0 Value="UNICODE"/>
+            </OtherDefines>
+          </Other>
+        </CompilerOptions>
+      </Item2>
       <SharedMatrixOptions Count="1">
-        <Item1 ID="619020955742" Modes="Default" Value="-dDUnit"/>
+        <Item1 ID="619020955742" Value="-dDUnit"/>
       </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
@@ -23,7 +65,6 @@
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0"/>
     </RunParams>
     <RequiredPackages Count="4">
       <Item1>
@@ -83,21 +124,32 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="fpcUnitTest"/>
+      <Filename Value="$(TargetOS)\Debug\fpcUnitTest"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="$(ProjPath);$(ProjPath)\..;$(ProjOutDir);$(ProjPath)\..\src"/>
-      <OtherUnitFiles Value="$(ProjPath)\..\src;$(ProjPath)\..\lib;$(ProjPath)\..\lib\superobject"/>
+      <IncludeFiles Value="$(ProjDir);$(ProjDir)\..;$(ProjOutDir);$(ProjDir)\..\src;$(ProjDir)\..\lib\OpenSSL"/>
+      <OtherUnitFiles Value="$(ProjDir)\..\src;$(ProjDir)\..\lib;$(ProjDir)\..\lib\superobject;$(ProjDir)\..\lib\OpenSSL;$(ProjDir)\..\lib\OpenSSL\dynamic"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="Delphi"/>
+        <IncludeAssertionCode Value="True"/>
       </SyntaxOptions>
     </Parsing>
+    <CodeGeneration>
+      <Checks>
+        <IOChecks Value="True"/>
+        <RangeChecks Value="True"/>
+        <OverflowChecks Value="True"/>
+        <StackChecks Value="True"/>
+      </Checks>
+      <VerifyObjMethodCallValidity Value="True"/>
+    </CodeGeneration>
     <Linking>
       <Debugging>
-        <UseValgrind Value="True"/>
+        <DebugInfoType Value="dsDwarf2Set"/>
+        <UseHeaptrc Value="True"/>
+        <TrashVariables Value="True"/>
         <UseExternalDbgSyms Value="True"/>
       </Debugging>
       <Options>
@@ -114,7 +166,7 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="3">
+    <Exceptions Count="11">
       <Item1>
         <Name Value="EAbort"/>
       </Item1>
@@ -124,6 +176,30 @@
       <Item3>
         <Name Value="EFOpenError"/>
       </Item3>
+      <Item4>
+        <Name Value="EIdHTTPProtocolException"/>
+      </Item4>
+      <Item5>
+        <Name Value="EHTTPError"/>
+      </Item5>
+      <Item6>
+        <Name Value="EJsonInvalidSyntax"/>
+      </Item6>
+      <Item7>
+        <Name Value="EJsonInvalidValue"/>
+      </Item7>
+      <Item8>
+        <Name Value="EJsonInvalidValueForField"/>
+      </Item8>
+      <Item9>
+        <Name Value="EInvalidHttpConnectionConfiguration"/>
+      </Item9>
+      <Item10>
+        <Name Value="ECustomCreateConnectionException"/>
+      </Item10>
+      <Item11>
+        <Name Value="EInactiveConnection"/>
+      </Item11>
     </Exceptions>
   </Debugging>
 </CONFIG>
