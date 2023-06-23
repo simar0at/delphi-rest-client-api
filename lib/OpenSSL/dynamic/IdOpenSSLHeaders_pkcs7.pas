@@ -89,8 +89,6 @@ const
   SMIME_ASCIICRLF = $80000;
 
 type
-  PPPByte = ^PPByte;
-
   PPKCS7 = ^PKCS7;
   PPPKCS7 = ^PPKCS7;
 

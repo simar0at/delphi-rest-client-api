@@ -2,13 +2,15 @@
 
 interface
 
-uses TestFramework, DbxJsonUnMarshal, TypesToTest,
+uses DUnitX.TestFramework, DUnitX.DUnitCompatibility, DbxJsonUnMarshal, TypesToTest,
      Generics.Collections, SuperObject, DbxJson, DbxJsonUtils, RestJsonUtils;
 
 type
   TTestDbxJsonUnMarshal = class(TTestCase)
   private
     FObject: TAllTypes;
+    procedure _invalidJsonSyntax;
+    procedure Fail(const msg: string);
   protected
     procedure TearDown; override;
   published
@@ -115,6 +117,11 @@ uses Math, SysUtils, DateUtils, StrUtils, superdate;
 
 { TTestDbxJsonUnMarshal }
 
+procedure TTestDbxJsonUnMarshal.Fail(const msg: string);
+begin
+  Check(False, msg)
+end;
+
 procedure TTestDbxJsonUnMarshal.empty;
 begin
   FObject := TDbxJsonUnMarshal.FromJson<TAllTypes>('{}');
@@ -124,8 +131,16 @@ end;
 
 procedure TTestDbxJsonUnMarshal.invalidJsonSyntax;
 begin
+  {$IFDEF FPC}
   ExpectedException := EJsonInvalidSyntax;
+  _invalidJsonSyntax;
+  {$ELSE}
+  CheckException(_invalidJsonSyntax, EJsonInvalidSyntax);
+  {$ENDIF}
+end;
 
+procedure TTestDbxJsonUnMarshal._invalidJsonSyntax;
+begin
   TDBXJsonUnmarshal.FromJson<TAllTypes>('{"a : null}');
 end;
 
@@ -722,8 +737,10 @@ begin
 end;
 
 initialization
+  {$IFDEF FPC}
   RegisterTest(TTestDbxJsonUnMarshal.Suite);
   RegisterTest(TTestDbxJsonUnMarshalCompatibility.Suite);
   RegisterTest(TTestJiraReponse.Suite);
+  {$ENDIF}
 
 end.

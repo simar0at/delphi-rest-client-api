@@ -23,12 +23,11 @@ type
     procedure DestroyHttpServer;
 
     {$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
-    procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
-    {$ELSE}
-    procedure OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
-    {$ENDIF}
     procedure OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);overload;
     procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);overload;
+    {$ELSE}
+    procedure OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
+    {$ENDIF}
 
     procedure OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
       AResponseInfo: TIdHTTPResponseInfo);
@@ -134,8 +133,8 @@ function TTestHeader.CreateHttpServer: TIdHTTPServer;
 begin
   FHttpServer := TIdHTTPServer.Create(nil);
   FHttpServer.DefaultPort := 9999;
-  FHttpServer.OnCommandGet := @OnCommandGet;
-  FHttpServer.OnHeadersAvailable := @OnHeadersAvailable;
+  FHttpServer.OnCommandGet := {$IFDEF FPC}@{$ENDIF}OnCommandGet;
+  FHttpServer.OnHeadersAvailable := {$IFDEF FPC}@{$ENDIF}OnHeadersAvailable;
   FHttpServer.Active := True;
 
   Result := FHttpServer;
@@ -155,7 +154,7 @@ begin
                          .Header('custom-b', '2')
                          .Get;
 
-  CheckEqualsString('{"custom-a":"1","custom-b":"2"}', vResponse);
+  CheckEquals('{"custom-a":"1","custom-b":"2"}', vResponse);
 end;
 
 procedure TTestHeader.OnCommandGet(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo;
@@ -187,10 +186,35 @@ begin
                          .Header('x-foo', 'Bar')
                          .Get;
 
-  CheckEqualsString('{"x-foo":"Bar"}', vResponse);
+  CheckEquals('{"x-foo":"Bar"}', vResponse);
 end;
 
 {$IFDEF HAVE_INDY_FROM_DELPHI_XE_UP}
+
+procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
+var
+  vAuthorizationValue: string;
+  i: Integer;
+begin
+  for i := 0 to AHeaders.Count-1 - 1 do
+  begin
+    if AnsiStartsText('Authorization', AHeaders.Strings[i]) then
+    begin
+      vAuthorizationValue := AHeaders.Values[AHeaders.Names[i]];
+      if AnsiStartsText('Basic', vAuthorizationValue) then
+      begin
+        Delete(vAuthorizationValue,1,6);
+        FAuthExists := True;
+        FAuthType := 'Basic';
+        FAuthData := vAuthorizationValue;
+      end;
+      Break;
+    end;
+  end;
+
+end;
+{$ENDIF}
+
 procedure TTestHeader.OnHeadersAvailable(AContext: TIdContext; const AUri: string; AHeaders: TIdHeaderList; var VContinueProcessing: Boolean);
 var
   vAuthorizationValue: string;

@@ -2,7 +2,7 @@ unit TestOldRttiUnmarshal;
 
 interface
 
-uses {$IFNDEF FPC}TestFramework, DbxJsonUtils, {$ELSE}fpcunit, testregistry, {$ENDIF} Contnrs, Classes, OldRttiUnMarshal;
+uses {$IFNDEF FPC}DUnitX.TestFramework, DUnitX.DUnitCompatibility, DbxJsonUtils, {$ELSE}fpcunit, testregistry, {$ENDIF} Contnrs, Classes, OldRttiUnMarshal;
 
 type
   {$M+}
@@ -64,6 +64,8 @@ type
     FObject: TAllTypes;
 
     function FromJson(AJson: string): TAllTypes;
+    procedure Fail(const msg: string);
+    procedure _invalidJsonSyntax;
   protected
     procedure TearDown; override;
   published
@@ -107,6 +109,11 @@ implementation
 uses Math, SysUtils, DateUtils, RestJsonUtils;
 
 { TTestOldRttiUnmarshal }
+
+procedure TTestOldRttiUnmarshal.Fail(const msg: string);
+begin
+  Check(False, msg)
+end;
 
 procedure TTestOldRttiUnmarshal.empty;
 begin
@@ -153,11 +160,16 @@ end;
 procedure TTestOldRttiUnmarshal.invalidJsonSyntax;
 begin
   {$IFNDEF FPC}
-  ExpectedException := EJsonInvalidSyntax;
+  CheckException(_invalidJsonSyntax, EJsonInvalidSyntax);
   {$ELSE}
   ExpectException(EJsonInvalidSyntax);
+  _invalidJsonSyntax;
   {$ENDIF}
 
+end;
+
+procedure TTestOldRttiUnmarshal._invalidJsonSyntax;
+begin
   FromJson('{"a : null}');
 end;
 
@@ -460,7 +472,8 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestOldRttiUnmarshal{$IFNDEF FPC}.Suite{$ENDIF});
+  {$IFDEF FPC}
+  RegisterTest(TTestOldRttiUnmarshal);
   RegisterClass(TAllTypes);
-
+  {$ENDIF}
 end.

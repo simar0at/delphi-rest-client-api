@@ -4,7 +4,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses TestFramework, DbxJsonMarshal, TypesToTest, RestJsonUtils, RestJsonDateTimeUtils,
+uses DUnitX.TestFramework, DUnitX.DUnitCompatibility, DbxJsonMarshal, TypesToTest, RestJsonUtils,
      Generics.Collections, SuperObject, DbxJson, DBXJsonHelpers,
      DBXJsonUnMarshal, DbxJsonUtils
     {$IFDEF DELPHI_XE6_UP}, Json{$ENDIF}
@@ -437,7 +437,9 @@ begin
 end;
 
 initialization
+  {$IFDEF FPC}
   RegisterTest(TTestDbxJsonMarshal.Suite);
   RegisterTest(TTestDbxJsonMarshalCompatibility.Suite);
+  {$ENDIF}
 
 end.

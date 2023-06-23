@@ -5,7 +5,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses TestFramework, Classes, RestClient, RestUtils, SuperObject,
+uses DUnitX.TestFramework,DUnitX.DUnitCompatibility, Classes, RestClient, RestUtils, SuperObject,
      RestJsonUtils, DB, DBClient, Person, SysUtils, DateUtils;
 
 type
@@ -215,6 +215,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestDataSetHandler.Suite);
+  {$IFDEF FPC}RegisterTest(TTestDataSetHandler.Suite);{$ENDIF}
 
 end.

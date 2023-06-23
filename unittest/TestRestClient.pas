@@ -4,7 +4,7 @@ interface
 
 {$I DelphiRest.inc}
 
-uses {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF}RestClient, HttpConnection, Classes, SysUtils, RestException;
+uses {$IFNDEF FPC}DUnitX.TestFramework,DUnitX.DUnitCompatibility, {$ELSE}fpcunit, testregistry, {$ENDIF}RestClient, HttpConnection, Classes, SysUtils, RestException;
 
 type
   TTestRestClient = class(TTestCase)
@@ -14,6 +14,10 @@ type
 
     procedure OnCreateCustomConnectionNull(Sender: TObject; AConnectionType: THttpConnectionType; out AConnection: IHttpConnection);
     procedure OnCreateCustomConnection(Sender: TObject; AConnectionType: THttpConnectionType; out AConnection: IHttpConnection);
+    procedure _InvalidCustomConnectionConfiguration;
+    procedure _InvalidCustomConnectionConfigurationResult;
+    procedure _RaiseExceptionWhenInactiveConnection;
+    procedure _RaiseExceptionWhenInactiveConnection2;
   protected
     procedure TearDown; override;
     procedure SetUp; override;
@@ -71,21 +75,31 @@ type
 procedure TTestRestClient.InvalidCustomConnectionConfiguration;
 begin
   {$IFNDEF FPC}
-  ExpectedException := EInvalidHttpConnectionConfiguration;
+  CheckException(_InvalidCustomConnectionConfiguration, EInvalidHttpConnectionConfiguration);
   {$ELSE}
   ExpectException(EInvalidHttpConnectionConfiguration);
+  _InvalidCustomConnectionConfiguration
   {$ENDIF}
+end;
+
+procedure TTestRestClient._InvalidCustomConnectionConfiguration;
+begin
   FRest.ConnectionType := hctCustom;
 end;
 
 procedure TTestRestClient.InvalidCustomConnectionConfigurationResult;
 begin
   {$IFNDEF FPC}
-  ExpectedException := ECustomCreateConnectionException;
+  CheckException(_InvalidCustomConnectionConfiguration, ECustomCreateConnectionException);
   {$ELSE}
   ExpectException(ECustomCreateConnectionException);
+  _InvalidCustomConnectionConfigurationResult
   {$ENDIF}
-  FRest.OnCustomCreateConnection := @OnCreateCustomConnectionNull;
+end;
+
+procedure TTestRestClient._InvalidCustomConnectionConfigurationResult;
+begin
+  FRest.OnCustomCreateConnection := {$IFDEF FPC}@{$ENDIF}OnCreateCustomConnectionNull;
   FRest.ConnectionType := hctCustom;
 end;
 
@@ -106,20 +120,30 @@ end;
 procedure TTestRestClient.RaiseExceptionWhenInactiveConnection;
 begin
   {$IFNDEF FPC}
-  ExpectedException := EInactiveConnection;
+  CheckException(_RaiseExceptionWhenInactiveConnection, EInactiveConnection);
   {$ELSE}
   ExpectException(EInactiveConnection);
+  _RaiseExceptionWhenInactiveConnection
   {$ENDIF}
+end;
+
+
+procedure TTestRestClient._RaiseExceptionWhenInactiveConnection;
+begin
   FRest.ResponseCode;
 end;
 
 procedure TTestRestClient.RaiseExceptionWhenInactiveConnection2;
 begin
   {$IFNDEF FPC}
-  ExpectedException := EInactiveConnection;
+  CheckException(_RaiseExceptionWhenInactiveConnection2, EInactiveConnection);
   {$ELSE}
   ExpectException(EInactiveConnection);
+  _RaiseExceptionWhenInactiveConnection2
   {$ENDIF}
+end;
+procedure TTestRestClient._RaiseExceptionWhenInactiveConnection2;
+begin
   FRest.Resource('https://www.google.com.br').Get;
 end;
 
@@ -138,7 +162,7 @@ end;
 
 procedure TTestRestClient.UsingCustomConnection;
 begin
-  FRest.OnCustomCreateConnection := @OnCreateCustomConnection;
+  FRest.OnCustomCreateConnection := {$IFDEF FPC}@{$ENDIF}OnCreateCustomConnection;
   FRest.ConnectionType := hctCustom;
 
   CheckTrue(FCustomCreateConnectionCalled);
@@ -174,6 +198,8 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestRestClient{$IFNDEF FPC}.Suite{$ENDIF});
+  {$IFDEF FPC}
+  RegisterTest(TTestRestClient);
+  {$ENDIF}
 
 end.

@@ -40,9 +40,11 @@ interface
 {$i IdCompilerDefines.inc}
 
 uses
+  {$IFDEF FPC}
   ctypes,
   {$IFDEF HAS_UNIT_UnixType}
   UnixType,
+  {$ENDIF}
   {$ENDIF}
   Classes,
   IdCTypes,
@@ -255,10 +257,6 @@ const
   //
 
 type
-  TIdC_INT   = cInt;
-  PIdC_INT   = pcInt;
-  PPIdC_INT  = ^PIdC_INT;
-
   //
   // If an ENGINE supports its own specific control commands and wishes the
   // framework to handle the above 'ENGINE_CMD_***'-manipulation commands on

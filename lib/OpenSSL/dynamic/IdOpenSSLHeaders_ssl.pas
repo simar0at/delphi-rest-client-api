@@ -40,9 +40,11 @@ interface
 {$i IdCompilerDefines.inc}
 
 uses
+  {$IFDEF FPC}
   ctypes,
   {$IFDEF HAS_UNIT_UnixType}
   UnixType,
+  {$ENDIF}
   {$ENDIF}
   Classes,
   IdCTypes,
@@ -907,8 +909,13 @@ const
   SSL_TICKET_RETURN_USE_RENEW = 4;
 
 type
+  {$IFDEF FPC}
   TIdC_INT   = cInt;
   PIdC_INT   = pcInt;
+  {$ELSE}
+  TIdC_INT   = Integer;
+  PIdC_INT   = PInteger;
+  {$ENDIF}
   PPIdC_INT  = ^PIdC_INT;
   PPPIdAnsiChar = ^PPIdAnsiChar;
   (*

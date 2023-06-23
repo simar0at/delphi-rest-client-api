@@ -41,12 +41,12 @@ unit WinHttp_TLB;
 {$VARPROPSETTER ON}
 interface
 
-uses Windows, ActiveX, Classes, Graphics, OleServer, Variants
-{$IFNDEF FPC}, StdVCL{$ENDIF};
+uses Windows, ActiveX, Classes, Variants,
+{$IFNDEF FPC}StdVCL, Vcl.{$ENDIF}Oleserver;
   
 
 // *********************************************************************//
-// GUIDS declared in the TypeLibrary. Following prefixes are used:        
+// GUIDS declared in the TypeLibrary. Following prefixes are used:
 //   Type Libraries     : LIBID_xxxx                                      
 //   CoClasses          : CLASS_xxxx                                      
 //   DISPInterfaces     : DIID_xxxx                                       

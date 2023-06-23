@@ -44,7 +44,7 @@ type
 
 implementation
 
-uses SysUtils, StrUtils, RestJsonDateTimeUtils, RestJsonUtils;
+uses SysUtils, StrUtils, RestJsonUtils;
 
 { TDBXJsonUnmarshal }
 

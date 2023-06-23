@@ -4,7 +4,7 @@ interface
 
 uses HttpConnection, Classes, SysUtils, Variants, ActiveX, WinHttp_TLB,
   ComObj
-  {$IFNDEF FPC}, AxCtrls{$ENDIF};
+  {$IFNDEF FPC}, Vcl.AxCtrls{$ENDIF};
 
 type
   THttpConnectionWinHttp = class(TInterfacedObject, IHttpConnection)

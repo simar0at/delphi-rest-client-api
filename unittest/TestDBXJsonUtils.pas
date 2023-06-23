@@ -2,7 +2,7 @@ unit TestDBXJsonUtils;
 
 interface
 
-uses TestFramework;
+uses DUnitX.TestFramework, DUnitX.DUnitCompatibility;
 
 type
   TTestDBXJsonUtils = class(TTestCase)
@@ -19,7 +19,7 @@ type
 implementation
 
 uses
-  SysUtils, DateUtils, DbxJsonUtils, DbxTest, RestJsonUtils, RestJsonDateTimeUtils;
+  SysUtils, DateUtils, DbxJsonUtils, DbxTest, RestJsonUtils;
 
 { TTestDBXJsonUtils }
 
@@ -115,6 +115,8 @@ begin
 end;
 
 initialization
+  {$IFDEF FPC}
   RegisterTest(TTestDBXJsonUtils.Suite);
+  {$ENDIF}
 
 end.

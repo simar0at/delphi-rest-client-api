@@ -3,7 +3,6 @@ program fpcUnitTest;
 {$mode objfpc}{$H+}
 
 uses
-  {$IFDEF UNIX}cthreads,{$ENDIF}
   Interfaces, Forms, GuiTestRunner,
   BaseTestRest, TestHelloWorld, TestOldRttiMarshal, TestOldRttiUnmarshal,
   TestRestClient, TestPeople, TestHeader, TestRequestSerialization;

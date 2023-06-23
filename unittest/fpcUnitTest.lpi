@@ -99,7 +99,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="fpcUnitTest"/>
+      <Filename Value="$(TargetOS)\Debug\fpcUnitTest"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\src"/>

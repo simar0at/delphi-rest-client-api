@@ -7,6 +7,8 @@ uses BaseTestRest, RestException;
 type
   TTestAsync = class(TBaseTestRest)
   private
+    procedure _GET_CancelRequestUsingOnAsyncRequestProcessEvent;
+    procedure _GET_CancelRequestWhenDestroyingTheRestClientObject;
   published
     procedure GET_CancelRequestUsingOnAsyncRequestProcessEvent;
     procedure GET_CancelRequestWhenDestroyingTheRestClientObject;
@@ -31,11 +33,22 @@ type
 
 procedure TTestAsync.GET_CancelRequestUsingOnAsyncRequestProcessEvent;
 begin
+  {$IFDEF FPC}
   if RestClient.ConnectionType = hctWinHttp then
     ExpectedException := EAbort
   else
     ExpectedException := ENotImplemented;
+  _GET_CancelRequestUsingOnAsyncRequestProcessEvent;
+  {$ELSE}
+  if RestClient.ConnectionType = hctWinHttp then
+    CheckException(_GET_CancelRequestUsingOnAsyncRequestProcessEvent, EAbort)
+  else
+    CheckException(_GET_CancelRequestUsingOnAsyncRequestProcessEvent, ENotImplemented);
+  {$ENDIF}
+end;
 
+procedure TTestAsync._GET_CancelRequestUsingOnAsyncRequestProcessEvent;
+begin
   RestClient.OnAsyncRequestProcess :=
     procedure(var Cancel: Boolean)
     begin
@@ -50,11 +63,23 @@ end;
 
 procedure TTestAsync.GET_CancelRequestWhenDestroyingTheRestClientObject;
 begin
+  {$IFDEF FPC}
   if RestClient.ConnectionType = hctWinHttp then
     ExpectedException := EAbort
   else
     ExpectedException := ENotImplemented;
+  _GET_CancelRequestWhenDestroyingTheRestClientObject
+  {$ELSE}
+  if RestClient.ConnectionType = hctWinHttp then
+    CheckException(_GET_CancelRequestWhenDestroyingTheRestClientObject, EAbort)
+  else
+    CheckException(_GET_CancelRequestWhenDestroyingTheRestClientObject, ENotImplemented);
+  {$ENDIF}
 
+end;
+
+procedure TTestAsync._GET_CancelRequestWhenDestroyingTheRestClientObject;
+begin
   TAnonymousThread.Create(
     procedure
     begin
@@ -65,9 +90,7 @@ begin
   RestClient.Resource(CONTEXT_PATH + 'async')
             .Accept('text/plain')
             .Async
-            .GET();
-end;
-
+            .GET();end;
 { TAnonymousThread }
 
 constructor TAnonymousThread.Create(const AProc: TProc);

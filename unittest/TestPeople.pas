@@ -15,6 +15,8 @@ type
 
     procedure CheckPerson(Name, EMail: String;Id: Integer=0);overload;
     procedure CheckPerson(Response: String; Name, EMail: String;Id: Integer=0);overload;
+
+    procedure _PersonNotFound;
   protected
     procedure SetUp; override;
   published
@@ -38,7 +40,7 @@ type
 implementation
 
 uses RestUtils, StrUtils, SysUtils, Math, DataSetUtils, Person,
-  {$IFNDEF FPC}TestFramework, {$ELSE}fpcunit, testregistry, {$ENDIF} HttpConnection;
+  {$IFNDEF FPC}DUnitX.TestFramework, DUnitX.DUnitCompatibility, {$ELSE}fpcunit, testregistry, {$ENDIF} HttpConnection;
 
 { TTestPeople }
 
@@ -214,12 +216,16 @@ end;
 
 procedure TTestPeople.PersonNotFound;
 begin
-  {$IFNDEF FPC}StartExpectingException(EHTTPError);
+  {$IFNDEF FPC}
+  CheckException(_PersonNotFound, EHTTPError, 'Person not found!');
   {$ELSE}
   ExpectException(EHTTPError);
+  _PersonNotFound;
   {$ENDIF}
+end;
+procedure TTestPeople._PersonNotFound;
+begin
   RestClient.Resource(CONTEXT_PATH + 'person/999').Accept(RestUtils.MediaType_Json).GET();
-  {$IFNDEF FPC}StopExpectingException('Person not found!');{$ENDIF}
 end;
 
 procedure TTestPeople.RemovePersonById;

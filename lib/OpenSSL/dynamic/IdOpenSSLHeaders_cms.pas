@@ -48,8 +48,6 @@ uses
   IdOpenSSLHeaders_x509;
 
 type
-  PPPByte = ^PPByte;
-
   CMS_ContentInfo_st = type Pointer;
   CMS_ContentInfo = CMS_ContentInfo_st;
   PCMS_ContentInfo = ^CMS_ContentInfo;

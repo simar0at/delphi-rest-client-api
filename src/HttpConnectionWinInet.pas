@@ -6,7 +6,7 @@ interface
 {$I DelphiRest.inc}
 
 uses HttpConnection, Classes, SysUtils, Variants, ActiveX, Wcrypt2, RestException
-  {$IFNDEF FPC}, AxCtrls{$ENDIF};
+  {$IFNDEF FPC}, Vcl.AxCtrls{$ENDIF};
 
 {$IFNDEF HAS_WININET_INTERNET_OPTION}
 const

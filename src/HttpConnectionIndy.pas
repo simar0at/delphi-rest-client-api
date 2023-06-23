@@ -99,8 +99,8 @@ begin
   ssl.Options.VerifyHostName:=FVerifyCert;
   ssl.Options.VerifyServerCertificate:=FVerifyCert;
 
-  ssl.Options.TLSVersionMinimum:=TLSv1_2;
-  ssl.Options.TLSVersionMaximum:=TLSv1_3;
+  ssl.Options.TLSVersionMinimum:=TIdOpenSSLVersion.TLSv1_2;
+  ssl.Options.TLSVersionMaximum:=TIdOpenSSLVersion.TLSv1_3;
 
   FIdHttp.IOHandler := ssl;
   FIdHttp.HandleRedirects := True;
