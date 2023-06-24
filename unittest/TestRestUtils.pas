@@ -2,7 +2,7 @@ unit TestRestUtils;
 
 interface
 
-uses TestFramework;
+uses {$IFNDEF FPC}DUnitX.TestFramework, DUnitX.DUnitCompatibility, {$ELSE}fpcunit, testregistry {$ENDIF};
 
 type
   TTestRestUtils = class(TTestCase)
@@ -29,6 +29,6 @@ begin
 end;
 
 initialization
-  RegisterTest(TTestRestUtils.Suite);
+  RegisterTest(TTestRestUtils{$IFNDEF FPC}.Suite{$ENDIF});
 
 end.

@@ -58,6 +58,7 @@ end;
 procedure TTestResponseHandler.HandleResponse(ResponseContent: TStream);
 var
   vStringStream: TStringStream;
+  s: string;
 begin
   vStringStream := TStringStream.Create('');
   try
@@ -68,7 +69,9 @@ begin
     {$IFDEF UNICODE}
       FResponse :=  UTF8ToWideString(RawByteString(vStringStream.DataString));
     {$ELSE}
-      FResponse :=  UTF8Decode(vStringStream.DataString);
+      s := vStringStream.DataString;
+      s := UTF8Decode(s);
+      FResponse := s;
     {$ENDIF}
   finally
     vStringStream.Free;
@@ -81,9 +84,9 @@ begin
 
   RestClient.Resource(CONTEXT_PATH + 'helloworld')
             .Accept('application/json')
-            .GET(HandleResponse);
+            .GET({$IFDEF FPC}@{$ENDIF}HandleResponse);
 
-  CheckEqualsString('{"msg":"Olá Mundo!"}', FResponse);
+  CheckEquals(UTF8Encode('{"msg":"Olá Mundo!"}'), FResponse);
 end;
 
 initialization

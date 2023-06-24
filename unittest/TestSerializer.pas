@@ -7,19 +7,29 @@ uses BaseTestRest, Generics.Collections, SuperObject, ContNrs, Classes, SysUtils
 type
   TPhone = class(TObject)
   public
-    number: Int64;
-    code: Integer;
+    _number: Int64;
+    _code: Integer;
+  published
+    property number: Int64 read _number write _number;
+    property code: Integer read _code write _code;
   end;
 
-  TPerson = class(TObject)
-  public
-    age: Integer;
-    name: String;
-    father: TPerson;
-    phones : TObjectList<TPhone>;
+  TPhoneArray = array of TPhone;
 
+  TPerson = class(TObject)
+  private
+    _age: Integer;
+    _name: String;
+    _father: TPerson;
+    _phones : TPhoneArray;
+  public
     function ToString: string; override;
     destructor Destroy; override;
+  published
+    property age: Integer read _age write _age;
+    property name: string read _name write _name;
+    property father: TPerson read _father write _father;
+    property phones: TPhoneArray read _phones write _phones;
   end;
   
   TTestDesserializer = class(TBaseTestRest)
@@ -35,6 +45,8 @@ type
   end;
 
 implementation
+
+uses RestJsonUtils;
 
 { TTestDesserializer }
 
@@ -53,7 +65,7 @@ const
 var
   vPerson: TPerson;
 begin
-  vPerson := TPerson.FromJson(sJson);
+  vPerson := TPerson(TJsonUtil.UnMarshal(TPerson, sJson));
   try
     CheckNotNull(vPerson);
     CheckEquals('Helbert', vPerson.name);
@@ -92,7 +104,7 @@ const
 var
   vPerson: TPerson;
 begin
-  vPerson := TPerson.FromJson(sJson);
+  vPerson := TPerson(TJsonUtil.UnMarshal(TPerson, sJson));
   try
     CheckNotNull(vPerson);
     CheckEquals('Helbert', vPerson.name);
@@ -102,8 +114,7 @@ begin
     CheckEquals('Luiz', vPerson.father.name);
     CheckEquals(60, vPerson.father.age);
 
-    CheckNotNull(vPerson.phones);
-    CheckEquals(2, vPerson.phones.Count);
+    CheckEquals(2, Length(vPerson.phones));
     CheckEquals(33083518, vPerson.phones[0].number);
     CheckEquals(61, vPerson.phones[0].code);
 
@@ -123,7 +134,7 @@ const
 var
   vPerson: TPerson;
 begin
-  vPerson := TPerson.FromJson(sJson);
+  vPerson := TPerson(TJsonUtil.UnMarshal(TPerson, sJson));
   try
     CheckNotNull(vPerson);
     CheckEquals('Helbert', vPerson.name);
@@ -146,7 +157,7 @@ begin
     vPerson.name := 'Helbert';
     vPerson.age := 30;
 
-    CheckEquals(sJson, vPerson.ToJson().AsJSon());
+    CheckEquals(sJson, TJsonUtil.Marshal(vPerson));
   finally
     vPerson.Free;
   end;
@@ -155,10 +166,12 @@ end;
 { TPerson }
 
 destructor TPerson.Destroy;
+var
+  phone: TPhone;
 begin
-  if Assigned(phones) then
-    phones.OwnsObjects := True;
-  phones.Free;
+  if Assigned(_phones) then
+    for phone in _phones do phone.Free;
+  SetLength(_phones, 0);
   father.Free;
   inherited;
 end;

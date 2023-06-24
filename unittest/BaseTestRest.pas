@@ -63,7 +63,8 @@ const
 implementation
 
 uses
-  SysUtils;
+  SysUtils
+  {$IFDEF WINDOWS}, ActiveX{$ENDIF};
 
 { TBaseTestRest }
 
@@ -84,6 +85,7 @@ begin
   {$IFDEF FPC}testregistry.RegisterTest('Indy', TBaseTestSuite.Create(Self, hctIndy));{$ENDIF}
   {$ENDIF}
   {$IFDEF USE_WIN_HTTP}
+  CoInitializeEx(nil,COINIT_MULTITHREADED);
   //TestFramework.RegisterTest('WinHTTP', TRepeatedTest.Create(TBaseTestSuite.Create(Self, hctWinHttp), 100));
   {$IFDEF FPC}testregistry.RegisterTest('WinHTTP', TBaseTestSuite.Create(Self, hctWinHttp));{$ENDIF}
   {$ENDIF}
