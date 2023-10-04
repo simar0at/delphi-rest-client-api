@@ -35,10 +35,16 @@ function DelphiDateTimeToISO8601Date(dt: TDateTime): string;
 
 implementation
 
+uses
 {$IFNDEF MACOS}
 {$IFNDEF LINUX}
-uses Windows, superdate;
+Windows,
+{$ENDIF}
+{$ENDIF}
+superdate;
 
+{$IFNDEF MACOS}
+{$IFNDEF LINUX}
 {$IFDEF WINDOWSNT_COMPATIBILITY}
 function DayLightCompareDate(const date: PSystemTime;
   const compareDate: PSystemTime): Integer;

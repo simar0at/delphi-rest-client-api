@@ -58,7 +58,7 @@ type
 implementation
 
 uses
-  ProxyUtils, IdOpenSSLVersion;
+  ProxyUtils, IdOpenSSLVersion, IdSSLOpenSSLHeaders;
 
 { THttpConnectionIndy }
 
