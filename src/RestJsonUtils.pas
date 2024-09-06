@@ -36,13 +36,17 @@ function DelphiDateTimeToISO8601Date(dt: TDateTime): string;
 implementation
 
 uses
+{$IFNDEF DARWIN}
 {$IFNDEF MACOS}
 {$IFNDEF LINUX}
 Windows,
 {$ENDIF}
 {$ENDIF}
+{$ENDIF}
 superdate;
 
+
+{$IFNDEF DARWIN}
 {$IFNDEF MACOS}
 {$IFNDEF LINUX}
 {$IFDEF WINDOWSNT_COMPATIBILITY}
@@ -273,6 +277,8 @@ function SystemTimeToTzSpecificLocalTime(
 {$ENDIF WINDOWSNT_COMPATIBILITY}
 {$ENDIF LINUX}
 {$ENDIF MACOS}
+{$ENDIF DARWIN}
+
 
 {$IFDEF HAS_TTIMEZONE}
 function JavaToDelphiDateTime(const dt: int64): TDateTime;
