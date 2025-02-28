@@ -21,7 +21,7 @@
     </CompilerOptions>
     <Description Value="Delphi REST Client API: Model REST JSON as ObjectPascal Classes."/>
     <Version Minor="5" Build="1"/>
-    <Files Count="12">
+    <Files Count="11">
       <Item1>
         <Filename Value="..\..\src\RestClient.pas"/>
         <UnitName Value="RestClient"/>
@@ -35,42 +35,38 @@
         <UnitName Value="superobject"/>
       </Item3>
       <Item4>
-        <Filename Value="..\..\lib\superobject\superxmlparser.pas"/>
-        <UnitName Value="superxmlparser"/>
-      </Item4>
-      <Item5>
         <Filename Value="..\..\src\RestJsonUtils.pas"/>
         <UnitName Value="RestJsonUtils"/>
-      </Item5>
-      <Item6>
+      </Item4>
+      <Item5>
         <Filename Value="..\..\src\RestJsonOldRTTI.pas"/>
         <UnitName Value="RestJsonOldRTTI"/>
-      </Item6>
-      <Item7>
+      </Item5>
+      <Item6>
         <Filename Value="..\..\src\DataSetUtils.pas"/>
         <UnitName Value="DataSetUtils"/>
-      </Item7>
-      <Item8>
+      </Item6>
+      <Item7>
         <Filename Value="..\..\src\RestRegister.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="RestRegister"/>
-      </Item8>
-      <Item9>
+      </Item7>
+      <Item8>
         <Filename Value="..\..\src\OldRttiMarshal.pas"/>
         <UnitName Value="OldRttiMarshal"/>
-      </Item9>
-      <Item10>
+      </Item8>
+      <Item9>
         <Filename Value="..\..\src\OldRttiUnMarshal.pas"/>
         <UnitName Value="OldRttiUnMarshal"/>
-      </Item10>
-      <Item11>
+      </Item9>
+      <Item10>
         <Filename Value="..\..\src\HttpConnectionFactory.pas"/>
         <UnitName Value="HttpConnectionFactory"/>
-      </Item11>
-      <Item12>
+      </Item10>
+      <Item11>
         <Filename Value="..\..\src\HttpConnection.pas"/>
         <UnitName Value="HttpConnection"/>
-      </Item12>
+      </Item11>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="1">

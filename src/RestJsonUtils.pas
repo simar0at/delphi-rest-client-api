@@ -36,11 +36,9 @@ function DelphiDateTimeToISO8601Date(dt: TDateTime): string;
 implementation
 
 uses
-{$IFNDEF DARWIN}
-{$IFNDEF MACOS}
+{$IFNDEF UNIX}
 {$IFNDEF LINUX}
 Windows,
-{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 superdate;

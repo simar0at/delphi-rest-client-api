@@ -8,9 +8,9 @@ unit LazRestApi;
 interface
 
 uses
-  RestClient, RestUtils, superobject, superxmlparser, RestJsonUtils, 
-  RestJsonOldRTTI, DataSetUtils, RestRegister, OldRttiMarshal, 
-  OldRttiUnMarshal, HttpConnectionFactory, HttpConnection, LazarusPackageIntf;
+  RestClient, RestUtils, superobject, RestJsonUtils, RestJsonOldRTTI, 
+  DataSetUtils, RestRegister, OldRttiMarshal, OldRttiUnMarshal, 
+  HttpConnectionFactory, HttpConnection, LazarusPackageIntf;
 
 implementation
 
